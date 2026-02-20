@@ -8,9 +8,21 @@ Progress tracking for the heydata-app monorepo. Check off items as they are comp
 
 ## Phase 1 — Monorepo Foundation
 
-- [ ] Root `package.json` (workspace config + shared devDependencies: TypeScript, ESLint, Prettier, Vitest, tsup, Turborepo)
-- [ ] `pnpm-workspace.yaml`
-- [ ] `turbo.json` (pipelines: build, dev, test, lint, typecheck)
+```sh
+# 1. Initialise root package.json
+pnpm init
+
+# 2. Install shared devDependencies at the workspace root
+pnpm add -Dw turbo typescript eslint prettier vitest tsup @types/node
+
+# 3. Scaffold turbo.json (pipelines: build, dev, test, lint, typecheck)
+npx turbo init
+```
+
+- [ ] `pnpm init` — root `package.json` with `"workspaces"` field
+- [ ] `pnpm add -Dw` — shared devDependencies installed
+- [ ] `npx turbo init` — `turbo.json` generated and pipelines configured
+- [ ] `pnpm-workspace.yaml` — workspace globs (`packages/*`)
 - [ ] `configs/tsconfig.base.json`
 - [ ] `configs/eslint.base.js`
 - [ ] `configs/prettier.config.js`
@@ -21,7 +33,15 @@ Progress tracking for the heydata-app monorepo. Check off items as they are comp
 
 ## Phase 2 — `@heydata/shared` — Shared Types
 
-- [ ] `package.json` + `tsconfig.json`
+```sh
+mkdir -p packages/shared/src/types
+cd packages/shared && pnpm init
+# Set name to @heydata/shared in package.json
+pnpm add -D tsup vitest
+```
+
+- [ ] `pnpm init` in `packages/shared` — `package.json` with name `@heydata/shared`
+- [ ] `tsconfig.json` (extends `../../configs/tsconfig.base.json`)
 - [ ] `src/types/intent.ts` — `IntentObject`
 - [ ] `src/types/result.ts` — `ResultSet`
 - [ ] `src/types/visualization.ts` — `VisualizationSpec`
@@ -38,11 +58,22 @@ Progress tracking for the heydata-app monorepo. Check off items as they are comp
 
 ### 3a. Scaffold
 
-- [ ] `package.json` (next, react, react-dom, tailwindcss, @heydata/shared)
-- [ ] `next.config.ts`
-- [ ] `tsconfig.json` (extends `configs/tsconfig.base.json`)
-- [ ] Tailwind CSS setup (`tailwind.config.ts`, `postcss.config.js`)
-- [ ] `src/app/globals.css`
+```sh
+# Scaffold Next.js app with TypeScript, Tailwind, App Router, and src/ layout
+pnpm dlx create-next-app@latest packages/web \
+  --typescript --tailwind --app --src-dir \
+  --no-eslint --import-alias "@/*"
+
+# Inside packages/web:
+# - Set name to @heydata/web in package.json
+# - Update tsconfig.json to extend ../../configs/tsconfig.base.json
+pnpm add @heydata/shared
+```
+
+- [ ] `pnpm dlx create-next-app@latest` — bootstraps Next.js with TypeScript, Tailwind, App Router
+- [ ] `package.json` — rename to `@heydata/web`, add `@heydata/shared` dependency
+- [ ] `tsconfig.json` — update to extend `../../configs/tsconfig.base.json`
+- [ ] `src/app/globals.css` — Tailwind directives
 - [ ] `src/app/layout.tsx` (root layout, metadata, font)
 
 ### 3b. Shell Layout
@@ -85,7 +116,16 @@ Progress tracking for the heydata-app monorepo. Check off items as they are comp
 
 ## Phase 4 — `@heydata/renderer` — Visualization
 
-- [ ] `package.json` + `tsconfig.json` + `tsup.config.ts`
+```sh
+mkdir -p packages/renderer/src/{charts,components}
+cd packages/renderer && pnpm init
+# Set name to @heydata/renderer in package.json
+pnpm add recharts @tanstack/react-table
+pnpm add -D react react-dom @types/react @types/react-dom tsup vitest
+```
+
+- [ ] `pnpm init` in `packages/renderer` — `package.json` with name `@heydata/renderer`
+- [ ] `tsconfig.json` + `tsup.config.ts`
 - [ ] `src/charts/LineChart.tsx`
 - [ ] `src/charts/BarChart.tsx`
 - [ ] `src/charts/AreaChart.tsx`
@@ -101,7 +141,16 @@ Progress tracking for the heydata-app monorepo. Check off items as they are comp
 
 ## Phase 5 — `@heydata/core` — AI Agent Pipeline
 
-- [ ] `package.json` + `tsconfig.json` + `tsup.config.ts`
+```sh
+mkdir -p packages/core/src/{agents,mocks}
+cd packages/core && pnpm init
+# Set name to @heydata/core in package.json
+pnpm add @anthropic-ai/sdk @heydata/shared
+pnpm add -D tsup vitest
+```
+
+- [ ] `pnpm init` in `packages/core` — `package.json` with name `@heydata/core`
+- [ ] `tsconfig.json` + `tsup.config.ts`
 - [ ] `src/agents/intent-resolver.ts`
 - [ ] `src/agents/sql-generator.ts`
 - [ ] `src/agents/sql-validator.ts`
@@ -119,7 +168,16 @@ Progress tracking for the heydata-app monorepo. Check off items as they are comp
 
 ## Phase 6 — `@heydata/semantic` — Semantic Layer
 
-- [ ] `package.json` + `tsconfig.json` + `tsup.config.ts`
+```sh
+mkdir -p packages/semantic/src/schemas packages/semantic/definitions
+cd packages/semantic && pnpm init
+# Set name to @heydata/semantic in package.json
+pnpm add zod js-yaml
+pnpm add -D @types/js-yaml tsup vitest
+```
+
+- [ ] `pnpm init` in `packages/semantic` — `package.json` with name `@heydata/semantic`
+- [ ] `tsconfig.json` + `tsup.config.ts`
 - [ ] `src/schemas/` — Zod schemas for metric/dimension/entity YAML files
 - [ ] `src/loader.ts` — `js-yaml` parser + Zod validation
 - [ ] `src/registry.ts` — in-memory lookup by name/synonym
@@ -130,9 +188,18 @@ Progress tracking for the heydata-app monorepo. Check off items as they are comp
 
 ## Phase 7 — `@heydata/bridge` — SQL Execution
 
-- [ ] `package.json` + `tsconfig.json` + `tsup.config.ts`
+```sh
+mkdir -p packages/bridge/src
+cd packages/bridge && pnpm init
+# Set name to @heydata/bridge in package.json
+pnpm add pg
+pnpm add -D @types/pg tsup vitest
+```
+
+- [ ] `pnpm init` in `packages/bridge` — `package.json` with name `@heydata/bridge`
+- [ ] `tsconfig.json` + `tsup.config.ts`
 - [ ] `src/pool.ts` — `pg.Pool` setup, connection config
-- [ ] `src/guards.ts` — keyword blocklist, row limit injection, timeout enforcement
+- [ ] `src/guards.ts` — SQL keyword deny-list, row limit injection, timeout enforcement
 - [ ] `src/executor.ts` — `executeQuery(sql, params)` → `ResultSet`
 - [ ] `src/errors.ts` — bridge-specific error types
 - [ ] Unit tests (mocked `pg` client)

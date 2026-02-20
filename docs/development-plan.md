@@ -126,24 +126,25 @@ pnpm add -D react react-dom @types/react @types/react-dom tsup vitest
 mkdir -p packages/core/src/{agents,mocks}
 cd packages/core && pnpm init
 # Set name to @heydata/core in package.json
-pnpm add @anthropic-ai/sdk @heydata/shared
+pnpm add @anthropic-ai/sdk @heydata/shared zod
 pnpm add -D tsup vitest
 ```
 
-- [ ] `pnpm init` in `packages/core` — `package.json` with name `@heydata/core`
-- [ ] `tsconfig.json` + `tsup.config.ts`
-- [ ] `src/agents/intent-resolver.ts`
-- [ ] `src/agents/sql-generator.ts`
-- [ ] `src/agents/sql-validator.ts`
-- [ ] `src/agents/data-validator.ts`
-- [ ] `src/agents/data-analyzer.ts`
-- [ ] `src/agents/viz-planner.ts`
-- [ ] `src/agents/narrative.ts`
-- [ ] `src/orchestrator.ts` — pipeline coordinator with retry loop
-- [ ] `src/cache.ts` — query-level caching
-- [ ] `src/mocks/` — mock bridge + semantic adapters for testing
-- [ ] Unit tests per agent (mocked Anthropic SDK)
-- [ ] Integration test (mocked bridge + semantic + SDK, full pipeline)
+- [x] `pnpm init` in `packages/core` — `package.json` with name `@heydata/core`
+- [x] `tsconfig.json` + `tsup.config.ts` + `vitest.config.ts`
+- [x] `src/types.ts` — `AgentContext`, `AgentResult`, trace helpers
+- [x] `src/agents/intent-resolver.ts`
+- [x] `src/agents/sql-generator.ts`
+- [x] `src/agents/sql-validator.ts`
+- [x] `src/agents/data-validator.ts`
+- [x] `src/agents/data-analyzer.ts`
+- [x] `src/agents/viz-planner.ts`
+- [x] `src/agents/narrative.ts`
+- [x] `src/orchestrator.ts` — pipeline coordinator with retry loop
+- [x] `src/cache.ts` — query-level caching
+- [x] `src/mocks/` — mock bridge + semantic adapters for testing
+- [x] Unit tests per agent (mocked Anthropic SDK)
+- [x] Integration test (mocked bridge + semantic + SDK, full pipeline)
 
 ---
 

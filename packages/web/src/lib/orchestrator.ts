@@ -1,8 +1,17 @@
 import { createOrchestrator, mockSemanticMetadata, executeMockQuery } from "@heydata/core";
-import type { OrchestratorResponse, SemanticMetadata } from "@heydata/shared";
+import { createPool, createExecutor } from "@heydata/bridge";
+import type { OrchestratorResponse, SemanticMetadata, ResultSet } from "@heydata/shared";
 
-// For MVP, use mock implementations
-// In production, replace with real semantic layer and bridge
+// ============================================================================
+// Configuration
+// ============================================================================
+
+// Set to true to use real database, false for mock data
+const USE_REAL_DATABASE = !!process.env.DATABASE_URL;
+
+// ============================================================================
+// Orchestrator Setup
+// ============================================================================
 
 const orchestrator = createOrchestrator({
   apiKey: process.env.ANTHROPIC_API_KEY ?? "",
@@ -11,15 +20,51 @@ const orchestrator = createOrchestrator({
   enableCache: true,
 });
 
-// Use mock semantic metadata (from core package)
-// In production, load from @heydata/semantic
+// ============================================================================
+// Semantic Layer
+// ============================================================================
+
+// TODO: Replace with loadRegistry() from @heydata/semantic when you have
+// your own YAML definitions. See GETTING_STARTED.md for details.
+//
+// import { loadRegistry } from "@heydata/semantic";
+// const registry = await loadRegistry("./packages/semantic/definitions");
+// const semanticMetadata = registry.toSemanticMetadata();
+
 const semanticMetadata: SemanticMetadata = mockSemanticMetadata;
 
-// Use mock query executor (from core package)
-// In production, use @heydata/bridge with real database
-const executeQuery = async (sql: string) => {
-  return executeMockQuery(sql);
-};
+// ============================================================================
+// Database Connection
+// ============================================================================
+
+let executeQuery: (sql: string) => Promise<ResultSet>;
+
+if (USE_REAL_DATABASE) {
+  // Real database connection using @heydata/bridge
+  const pool = createPool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_SSL === "false"
+      ? false
+      : { rejectUnauthorized: false }, // Required for Supabase
+    max: 10,
+  });
+
+  executeQuery = createExecutor(pool, {
+    maxRows: 10000,
+    timeoutMs: 30000,
+    validateOperations: true,
+  });
+
+  console.log("[heydata] Using real database connection");
+} else {
+  // Mock data for development/testing
+  executeQuery = async (sql: string) => executeMockQuery(sql);
+  console.log("[heydata] Using mock data (set DATABASE_URL to use real database)");
+}
+
+// ============================================================================
+// Query Processing
+// ============================================================================
 
 export interface QueryRequest {
   question: string;

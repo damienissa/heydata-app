@@ -70,7 +70,7 @@ pnpm dlx create-next-app@latest packages/web \
 pnpm add @heydata/shared
 ```
 
-- [ ] `pnpm dlx create-next-app@latest` — bootstraps Next.js with TypeScript, Tailwind, App Router
+- [x] `pnpm dlx create-next-app@latest` — bootstraps Next.js with TypeScript, Tailwind, App Router
 - [ ] `package.json` — rename to `@heydata/web`, add `@heydata/shared` dependency
 - [ ] `tsconfig.json` — update to extend `../../configs/tsconfig.base.json`
 - [ ] `src/app/globals.css` — Tailwind directives

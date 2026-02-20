@@ -105,18 +105,18 @@ pnpm add recharts @tanstack/react-table
 pnpm add -D react react-dom @types/react @types/react-dom tsup vitest
 ```
 
-- [ ] `pnpm init` in `packages/renderer` — `package.json` with name `@heydata/renderer`
-- [ ] `tsconfig.json` + `tsup.config.ts`
-- [ ] `src/charts/LineChart.tsx`
-- [ ] `src/charts/BarChart.tsx`
-- [ ] `src/charts/AreaChart.tsx`
-- [ ] `src/charts/ScatterChart.tsx`
-- [ ] `src/charts/ComposedChart.tsx` (dual-axis)
-- [ ] `src/components/KpiCard.tsx` (custom)
-- [ ] `src/components/DataTable.tsx` (TanStack Table)
-- [ ] `src/RendererRouter.tsx` — routes `VisualizationSpec.type` → correct component
-- [ ] Wire into `ResultsCanvas` in web
-- [ ] Unit tests (snapshot / render tests)
+- [x] `pnpm init` in `packages/renderer` — `package.json` with name `@heydata/renderer`
+- [x] `tsconfig.json` + `tsup.config.ts`
+- [x] `src/charts/LineChart.tsx`
+- [x] `src/charts/BarChart.tsx`
+- [x] `src/charts/AreaChart.tsx`
+- [x] `src/charts/ScatterChart.tsx`
+- [x] `src/charts/ComposedChart.tsx` (dual-axis)
+- [x] `src/components/KpiCard.tsx` (custom)
+- [x] `src/components/DataTable.tsx` (TanStack Table)
+- [x] `src/RendererRouter.tsx` — routes `VisualizationSpec.type` → correct component
+- [x] Wire into `ResultsCanvas` in web
+- [x] Unit tests (snapshot / render tests)
 
 ---
 

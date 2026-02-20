@@ -70,47 +70,48 @@ pnpm dlx create-next-app@latest packages/web \
 pnpm add @heydata/shared
 ```
 
-- [x] `pnpm dlx create-next-app@latest` — bootstraps Next.js with TypeScript, Tailwind, App Router
-- [x] `package.json` — rename to `@heydata/web`, add `@heydata/shared` dependency
-- [x] `tsconfig.json` — update to extend `../../configs/tsconfig.base.json`
-- [x] `src/app/globals.css` — Tailwind directives
-- [x] `src/app/layout.tsx` (root layout, metadata, font)
+- [ ] `pnpm dlx create-next-app@latest` — bootstraps Next.js with TypeScript, Tailwind, App Router
+- [ ] `package.json` — rename to `@heydata/web`, add `@heydata/shared` dependency
+- [ ] `tsconfig.json` — update to extend `../../configs/tsconfig.base.json`
+- [ ] `src/app/globals.css` — Tailwind directives
+- [ ] `src/app/layout.tsx` (root layout, metadata, font)
 
 ### 3b. Shell Layout
 
-- [x] `src/components/layout/AppShell.tsx` (sidebar + main area two-column)
-- [x] `src/components/layout/Sidebar.tsx` (conversation list, new chat button)
-- [x] `src/components/layout/Header.tsx`
+- [ ] `src/components/layout/AppShell.tsx` (sidebar + main area two-column)
+- [ ] `src/components/layout/Sidebar.tsx` (conversation list, new chat button)
+- [ ] `src/components/layout/Header.tsx`
 
 ### 3c. Chat Interface
 
-- [x] `src/components/chat/ChatInput.tsx` (textarea, submit on Enter/button, disabled during loading)
-- [x] `src/components/chat/MessageBubble.tsx` (user vs. assistant variant)
-- [x] `src/components/chat/ConversationThread.tsx` (scrollable message list)
-- [x] `src/components/chat/TypingIndicator.tsx` (streaming in progress)
-- [x] `src/app/page.tsx` — home page wiring chat input + thread
+- [ ] Interface must be simmilar to ChatGPT
+- [ ] `src/components/chat/ChatInput.tsx` (textarea, submit on Enter/button, disabled during loading)
+- [ ] `src/components/chat/MessageBubble.tsx` (user vs. assistant variant)
+- [ ] `src/components/chat/ConversationThread.tsx` (scrollable message list)
+- [ ] `src/components/chat/TypingIndicator.tsx` (streaming in progress)
+- [ ] `src/app/page.tsx` — home page wiring chat input + thread
 
 ### 3d. Results Canvas
 
-- [x] `src/components/canvas/ResultsCanvas.tsx` (host for chart + narrative)
-- [x] `src/components/canvas/ChartPlaceholder.tsx` (placeholder before renderer is wired)
-- [x] `src/components/canvas/NarrativeBlock.tsx` (assistant prose output)
-- [x] `src/components/canvas/LoadingSkeleton.tsx`
+- [ ] `src/components/canvas/ResultsCanvas.tsx` (host for chart + narrative)
+- [ ] `src/components/canvas/ChartPlaceholder.tsx` (placeholder before renderer is wired)
+- [ ] `src/components/canvas/NarrativeBlock.tsx` (assistant prose output)
+- [ ] `src/components/canvas/LoadingSkeleton.tsx`
 
 ### 3e. Transparency Toggles
 
-- [x] `src/components/transparency/SqlViewer.tsx` (collapsible code block showing generated SQL)
-- [x] `src/components/transparency/MetricTooltip.tsx` (hover tooltip for metric definitions)
+- [ ] `src/components/transparency/SqlViewer.tsx` (collapsible code block showing generated SQL)
+- [ ] `src/components/transparency/MetricTooltip.tsx` (hover tooltip for metric definitions)
 
 ### 3f. Error States
 
-- [x] `src/components/feedback/ErrorBanner.tsx`
-- [x] `src/components/feedback/RetryButton.tsx`
+- [ ] `src/components/feedback/ErrorBanner.tsx`
+- [ ] `src/components/feedback/RetryButton.tsx`
 
 ### 3g. Conversation State
 
-- [x] `src/context/ConversationContext.tsx` (React Context + `useReducer` — message list, loading state, error)
-- [x] `src/hooks/useConversation.ts`
+- [ ] `src/context/ConversationContext.tsx` (React Context + `useReducer` — message list, loading state, error)
+- [ ] `src/hooks/useConversation.ts`
 
 ---
 

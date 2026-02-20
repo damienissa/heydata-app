@@ -82,35 +82,16 @@ pnpm add @heydata/shared
 - [x] `src/components/layout/Sidebar.tsx` (conversation list, new chat button)
 - [x] `src/components/layout/Header.tsx`
 
-### 3c. Chat Interface (claude.ai style)
+### 3c. Chat Interface (using assistant-ui)
 
-- [x] `src/components/chat/ChatInput.tsx` (textarea, submit on Enter/button, disabled during loading)
-- [x] `src/components/chat/MessageBubble.tsx` (user vs. assistant variant)
-- [x] `src/components/chat/ConversationThread.tsx` (scrollable message list)
-- [x] `src/components/chat/TypingIndicator.tsx` (streaming in progress)
-- [x] `src/app/page.tsx` — home page wiring chat input + thread
+Using [assistant-ui](https://assistant-ui.com) for production-ready chat components:
 
-### 3d. Results Canvas
-
-- [x] `src/components/canvas/ResultsCanvas.tsx` (host for chart + narrative)
-- [x] `src/components/canvas/ChartPlaceholder.tsx` (placeholder before renderer is wired)
-- [x] `src/components/canvas/NarrativeBlock.tsx` (assistant prose output)
-- [x] `src/components/canvas/LoadingSkeleton.tsx`
-
-### 3e. Transparency Toggles
-
-- [x] `src/components/transparency/SqlViewer.tsx` (collapsible code block showing generated SQL)
-- [x] `src/components/transparency/MetricTooltip.tsx` (hover tooltip for metric definitions)
-
-### 3f. Error States
-
-- [x] `src/components/feedback/ErrorBanner.tsx`
-- [x] `src/components/feedback/RetryButton.tsx`
-
-### 3g. Conversation State
-
-- [x] `src/context/ConversationContext.tsx` (React Context + `useReducer` — message list, loading state, error)
-- [x] `src/hooks/useConversation.ts`
+- [x] `@assistant-ui/react` + `@assistant-ui/react-ai-sdk` — chat UI components
+- [x] `src/components/assistant-ui/thread.tsx` — full chat thread with welcome screen
+- [x] `src/components/assistant-ui/markdown-text.tsx` — markdown rendering
+- [x] `src/app/assistant.tsx` — runtime provider setup
+- [x] `src/app/api/chat/route.ts` — Anthropic Claude API endpoint
+- [x] `src/app/page.tsx` — home page with sidebar + chat
 
 ---
 

@@ -25,7 +25,7 @@ export function AppShell({
   onNewChat,
 }: AppShellProps) {
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col bg-white dark:bg-[#1a1a1a]">
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar

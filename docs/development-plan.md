@@ -19,15 +19,15 @@ pnpm add -Dw turbo typescript eslint prettier vitest tsup @types/node
 npx turbo init
 ```
 
-- [ ] `pnpm init` — root `package.json` with `"workspaces"` field
-- [ ] `pnpm add -Dw` — shared devDependencies installed
-- [ ] `npx turbo init` — `turbo.json` generated and pipelines configured
-- [ ] `pnpm-workspace.yaml` — workspace globs (`packages/*`)
-- [ ] `configs/tsconfig.base.json`
-- [ ] `configs/eslint.base.js`
-- [ ] `configs/prettier.config.js`
-- [ ] `.gitignore`
-- [ ] `.env.example` (ANTHROPIC_API_KEY, DATABASE_URL)
+- [x] `pnpm init` — root `package.json` with `"private": true`
+- [x] `pnpm add -Dw` — shared devDependencies installed
+- [x] `turbo.json` — pipelines configured (build, dev, test, lint, typecheck)
+- [x] `pnpm-workspace.yaml` — workspace globs (`packages/*`)
+- [x] `configs/tsconfig.base.json`
+- [x] `configs/eslint.base.mjs` (ESLint 9 flat config)
+- [x] `configs/prettier.config.js`
+- [x] `.gitignore`
+- [x] `.env.example` (ANTHROPIC_API_KEY, DATABASE_URL)
 
 ---
 

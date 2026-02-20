@@ -1,13 +1,14 @@
-import { createOrchestrator, mockSemanticMetadata, executeMockQuery } from "@heydata/core";
-import { createPool, createExecutor } from "@heydata/bridge";
-import type { OrchestratorResponse, SemanticMetadata, ResultSet } from "@heydata/shared";
+import { createExecutor, createPool } from "@heydata/bridge";
+import { createOrchestrator } from "@heydata/core";
+import { loadRegistry } from "@heydata/semantic";
+import type { OrchestratorResponse, ResultSet, SemanticMetadata } from "@heydata/shared";
+import { HeyDataError } from "@heydata/shared";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 
 // ============================================================================
-// Configuration
+// Configuration (no mocks: real semantic layer + real DB required)
 // ============================================================================
-
-// Set to true to use real database, false for mock data
-const USE_REAL_DATABASE = !!process.env.DATABASE_URL;
 
 // ============================================================================
 // Orchestrator Setup
@@ -21,45 +22,71 @@ const orchestrator = createOrchestrator({
 });
 
 // ============================================================================
-// Semantic Layer
+// Semantic Layer (real definitions include subscribers_count, etc.)
 // ============================================================================
 
-// TODO: Replace with loadRegistry() from @heydata/semantic when you have
-// your own YAML definitions. See GETTING_STARTED.md for details.
-//
-// import { loadRegistry } from "@heydata/semantic";
-// const registry = await loadRegistry("./packages/semantic/definitions");
-// const semanticMetadata = registry.toSemanticMetadata();
+function resolveSemanticDefinitionsDir(): string {
+  if (process.env.SEMANTIC_DEFINITIONS_DIR) {
+    return process.env.SEMANTIC_DEFINITIONS_DIR;
+  }
+  const cwd = process.cwd();
+  const fromWeb = join(cwd, "..", "semantic", "definitions");
+  if (existsSync(fromWeb)) return fromWeb;
+  const fromRoot = join(cwd, "packages", "semantic", "definitions");
+  if (existsSync(fromRoot)) return fromRoot;
+  return fromWeb;
+}
 
-const semanticMetadata: SemanticMetadata = mockSemanticMetadata;
+const SEMANTIC_DEFINITIONS_DIR = resolveSemanticDefinitionsDir();
+
+let semanticMetadataPromise: Promise<SemanticMetadata> | null = null;
+
+async function getSemanticMetadata(): Promise<SemanticMetadata> {
+  if (semanticMetadataPromise === null) {
+    semanticMetadataPromise = (async () => {
+      const registry = await loadRegistry(SEMANTIC_DEFINITIONS_DIR, { strict: false });
+      const metadata = registry.toSemanticMetadata();
+      console.log(
+        "[heydata] Using semantic layer from",
+        SEMANTIC_DEFINITIONS_DIR,
+        `(${metadata.metrics.length} metrics, ${metadata.dimensions.length} dimensions)`,
+      );
+      return metadata;
+    })();
+  }
+  return semanticMetadataPromise;
+}
 
 // ============================================================================
-// Database Connection
+// Database Connection (real only; no mocks)
 // ============================================================================
 
-let executeQuery: (sql: string) => Promise<ResultSet>;
+function getExecuteQuery(): (sql: string) => Promise<ResultSet> {
+  const connectionString = process.env.DATABASE_URL;
 
-if (USE_REAL_DATABASE) {
-  // Real database connection using @heydata/bridge
   const pool = createPool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString,
     ssl: process.env.DATABASE_SSL === "false"
       ? false
-      : { rejectUnauthorized: false }, // Required for Supabase
+      : { rejectUnauthorized: false },
     max: 10,
   });
 
-  executeQuery = createExecutor(pool, {
+  return createExecutor(pool, {
     maxRows: 10000,
     timeoutMs: 30000,
     validateOperations: true,
   });
+}
 
-  console.log("[heydata] Using real database connection");
-} else {
-  // Mock data for development/testing
-  executeQuery = async (sql: string) => executeMockQuery(sql);
-  console.log("[heydata] Using mock data (set DATABASE_URL to use real database)");
+let executeQueryInstance: ((sql: string) => Promise<ResultSet>) | null = null;
+
+function getExecuteQueryLazy(): (sql: string) => Promise<ResultSet> {
+  if (executeQueryInstance === null) {
+    executeQueryInstance = getExecuteQuery();
+    console.log("[heydata] Using real database connection");
+  }
+  return executeQueryInstance;
 }
 
 // ============================================================================
@@ -72,16 +99,31 @@ export interface QueryRequest {
 }
 
 export async function processQuery(request: QueryRequest): Promise<OrchestratorResponse> {
+  let semanticMetadata: SemanticMetadata;
+  try {
+    semanticMetadata = await getSemanticMetadata();
+  } catch (err) {
+    throw new HeyDataError(
+      "CONFIG_ERROR",
+      `Failed to load semantic layer from ${SEMANTIC_DEFINITIONS_DIR}. Ensure definitions exist (no mocks). ${err instanceof Error ? err.message : String(err)}`,
+      { agent: "orchestrator" },
+    );
+  }
+
+  const runQuery = getExecuteQueryLazy();
+
   return orchestrator.process({
     question: request.question,
     semanticMetadata,
-    executeQuery,
-    sessionContext: request.sessionId ? {
-      sessionId: request.sessionId,
-      turns: [],
-      activeMetrics: [],
-      activeDimensions: [],
-      activeFilters: [],
-    } : undefined,
+    executeQuery: runQuery,
+    sessionContext: request.sessionId
+      ? {
+        sessionId: request.sessionId,
+        turns: [],
+        activeMetrics: [],
+        activeDimensions: [],
+        activeFilters: [],
+      }
+      : undefined,
   });
 }

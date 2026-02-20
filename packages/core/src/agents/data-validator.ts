@@ -1,6 +1,7 @@
 import type {
   ColumnStats,
   DataQualityFlag,
+  IntentObject,
   ResultSet,
   Row,
 } from "@heydata/shared";
@@ -9,6 +10,7 @@ import { createSuccessTrace } from "../types.js";
 
 export interface DataValidatorInput extends AgentInput {
   resultSet: ResultSet;
+  intent?: IntentObject;
 }
 
 export interface DataValidatorOutput {
@@ -132,7 +134,7 @@ export async function validateData(
   input: DataValidatorInput,
 ): Promise<AgentResult<DataValidatorOutput>> {
   const startedAt = new Date();
-  const { context, resultSet } = input;
+  const { context, resultSet, intent } = input;
 
   const qualityFlags: DataQualityFlag[] = [];
   const columnStats: ColumnStats[] = [];
@@ -155,6 +157,54 @@ export async function validateData(
       message: `Results were truncated. Only ${resultSet.rowCount} rows returned.`,
       affectedRows: resultSet.rowCount,
     });
+  }
+
+  // Validate date range against intent if provided
+  if (intent?.timeRange && resultSet.rowCount > 0) {
+    const dateColumns = resultSet.columns.filter(
+      (c) => c.type === "date" || c.semanticRole === "time",
+    );
+
+    for (const dateCol of dateColumns) {
+      const dateValues = resultSet.rows
+        .map((row: Row) => {
+          const val = row[dateCol.name];
+          if (typeof val === "string") {
+            const parsed = new Date(val);
+            return isNaN(parsed.getTime()) ? null : parsed;
+          }
+          return null;
+        })
+        .filter((v): v is Date => v !== null);
+
+      if (dateValues.length > 0) {
+        const sorted = [...dateValues].sort((a, b) => a.getTime() - b.getTime());
+        const minDate = sorted[0]!;
+        const maxDate = sorted[sorted.length - 1]!;
+
+        const requestedStart = new Date(intent.timeRange.start);
+        const requestedEnd = new Date(intent.timeRange.end);
+
+        // Check if data falls outside requested range
+        if (maxDate < requestedStart) {
+          qualityFlags.push({
+            type: "value_out_of_range",
+            severity: "error",
+            column: dateCol.name,
+            message: `Data ends at ${maxDate.toISOString().split("T")[0]} but requested range starts at ${intent.timeRange.start}. The returned data does not overlap with the requested time period.`,
+            affectedRows: resultSet.rowCount,
+          });
+        } else if (minDate > requestedEnd) {
+          qualityFlags.push({
+            type: "value_out_of_range",
+            severity: "error",
+            column: dateCol.name,
+            message: `Data starts at ${minDate.toISOString().split("T")[0]} but requested range ends at ${intent.timeRange.end}. The returned data does not overlap with the requested time period.`,
+            affectedRows: resultSet.rowCount,
+          });
+        }
+      }
+    }
   }
 
   // Analyze each column

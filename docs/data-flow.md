@@ -72,6 +72,15 @@ The user types a natural language question. The web layer captures:
 
 The query is forwarded to `@heydata/core`.
 
+#### Web ↔ Core entry points
+
+| Entry point | Route | Purpose |
+|------------|--------|---------|
+| **Chat** | `POST /api/chat` | Assistant UI: streaming chat. Uses a **tool** `query_data` that calls the orchestrator so data questions run the full pipeline and render narrative + chart in the thread. |
+| **Query API** | `POST /api/query` | Direct programmatic access: `useQuery()` → orchestrator → `OrchestratorResponse`. Used when the chat model calls the `query_data` tool. |
+
+The chat is connected to data by having the model call the `query_data` tool for analytics questions; the tool runs `processQuery()` and returns the full response (narrative, visualization, results). The thread renders a custom `query_data` tool result as `QueryResult` (chart + narrative).
+
 ### Step 2 — Orchestration (`@heydata/core` — Orchestrator Agent)
 
 The Orchestrator receives the user message and conversation history. It:

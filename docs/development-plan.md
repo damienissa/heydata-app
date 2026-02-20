@@ -197,5 +197,6 @@ pnpm add -D @types/pg tsup vitest
 - [x] Create `useQuery` hook for client-side query execution
 - [x] Create `QueryResult` component for displaying enriched results
 - [x] Render `VisualizationSpec` from core response using `@heydata/renderer`
-- [ ] End-to-end smoke test (real Anthropic API + real Postgres)
+- [x] Connect chat to data: `/api/chat` uses `query_data` tool → `processQuery()`; thread renders `QueryDataTool` (narrative + chart)
+- [x] End-to-end smoke test (real Anthropic API + real Postgres)
 - [ ] Playwright E2E: submit query → see chart rendered

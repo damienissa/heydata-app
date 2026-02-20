@@ -3,6 +3,8 @@
 import { RendererRouter } from "@heydata/renderer";
 import type { OrchestratorResponse } from "@heydata/shared";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export interface QueryResultProps {
   response: OrchestratorResponse;
@@ -25,7 +27,7 @@ export function QueryResult({ response, className = "" }: QueryResultProps) {
       {/* Narrative Summary */}
       {narrative && (
         <div className="prose prose-sm max-w-none dark:prose-invert">
-          <div dangerouslySetInnerHTML={{ __html: narrative.replace(/\n/g, "<br />") }} />
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{narrative}</ReactMarkdown>
         </div>
       )}
 

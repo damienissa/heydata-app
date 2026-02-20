@@ -56,7 +56,7 @@ export const VisualizationSpecSchema = z.object({
   xAxis: AxisConfigSchema.optional(),
   yAxis: AxisConfigSchema.optional(),
   yAxisRight: AxisConfigSchema.optional(),
-  series: z.array(SeriesConfigSchema),
+  series: z.array(SeriesConfigSchema).default([]),
   legend: LegendConfigSchema.optional(),
   stacked: z.boolean().optional(),
   kpiValue: z.string().optional(),

@@ -165,8 +165,14 @@ describe("FilterClauseSchema", () => {
 
   it("rejects invalid operator", () => {
     expect(() =>
-      FilterClauseSchema.parse({ dimension: "x", operator: "contains", value: "y" }),
+      FilterClauseSchema.parse({ dimension: "x", operator: "invalid_op", value: "y" }),
     ).toThrow();
+  });
+
+  it("coerces LLM-friendly operator aliases to canonical form", () => {
+    expect(
+      FilterClauseSchema.parse({ dimension: "status", operator: "equals", value: "active" }),
+    ).toEqual({ dimension: "status", operator: "eq", value: "active" });
   });
 });
 

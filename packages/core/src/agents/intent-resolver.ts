@@ -24,52 +24,62 @@ export interface IntentResolverInput extends AgentInput {
 
 const SYSTEM_PROMPT = `You are an expert data analyst assistant that interprets natural language questions about business data and converts them into structured intent objects.
 
-Your task is to analyze the user's question and determine:
+TODAY'S DATE: {{CURRENT_DATE}}
+
+Your task is to analyze the user's question and the FULL semantic layer below to determine:
 1. The type of analysis they want (trend, comparison, ranking, anomaly, drill_down, aggregation, distribution, correlation)
-2. Which metrics they want to analyze
-3. Which dimensions to group by
+2. Which metrics they want to analyze - CAREFULLY READ each metric's formula to understand what it measures
+3. Which dimensions to group by - check each metric's compatible dimensions
 4. Any filters to apply
-5. Time range if specified
+5. Time range if specified (use ABSOLUTE dates based on today's date)
 6. Comparison mode if comparing periods
 7. Sort order and limits if applicable
 
-You have access to the following metrics and dimensions in the semantic layer:
+SEMANTIC LAYER:
 
-METRICS:
+METRICS (with formulas and compatible dimensions):
 {{METRICS}}
 
-DIMENSIONS:
+DIMENSIONS (with table/column mappings):
 {{DIMENSIONS}}
 
-Important guidelines:
-- Match metric and dimension names exactly as defined in the semantic layer
-- If the user's terms don't exactly match, use synonyms when available
-- If a question is ambiguous, set clarificationNeeded to true and provide a clarificationQuestion
-- For follow-up questions, consider the conversation context
-- Set confidence based on how certain you are about the interpretation (0.0 to 1.0)
-- Time expressions like "last month", "this quarter", "yesterday" should be converted to relative date ranges
+Guidelines:
+- CAREFULLY ANALYZE each metric's FORMULA to understand what it actually measures before selecting it
+- Use only dimensions listed as compatible with the selected metrics
+- Match names exactly as defined; use synonyms when user terms differ
+- If ambiguous, set clarificationNeeded: true with a clarificationQuestion
+- Set confidence (0.0-1.0) based on interpretation certainty
+- CRITICAL: Convert relative time expressions to ABSOLUTE dates using today ({{CURRENT_DATE}}). Example: "last 2 months" with today=2026-02-21 → timeRange: {"start": "2025-12-21", "end": "2026-02-21"}
+- For trend/graph queries, include a date dimension to group by and set appropriate grain
+- When filtering to a single entity (e.g., one username), select metrics whose formulas make sense for that entity's data (e.g., SUM, COUNT of their records), not metrics that count distinct entities (which would trivially be 1)
 
-Respond with a JSON object matching the IntentObject schema.`;
+Respond with JSON matching IntentObject schema. Required fields: queryType, metrics (array with at least one), dimensions (array), filters (array), isFollowUp (boolean), clarificationNeeded (boolean), confidence (0-1).
+`;
 
 function buildSystemPrompt(metadata: SemanticMetadata): string {
+  const currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+
   const metricsDesc = metadata.metrics
     .map(
       (m) =>
-        `- ${m.name} (${m.displayName}): ${m.description}${m.synonyms?.length ? ` [synonyms: ${m.synonyms.join(", ")}]` : ""}`,
+        `- ${m.name} (${m.displayName})
+    Description: ${m.description}
+    Formula: ${m.formula}
+    Compatible dimensions: ${m.dimensions.length > 0 ? m.dimensions.join(", ") : "all"}${m.grain ? `\n    Grain: ${m.grain}` : ""}${m.synonyms?.length ? `\n    Synonyms: ${m.synonyms.join(", ")}` : ""}`,
     )
-    .join("\n");
+    .join("\n\n");
 
   const dimensionsDesc = metadata.dimensions
     .map(
       (d) =>
-        `- ${d.name} (${d.displayName}): ${d.description}${d.synonyms?.length ? ` [synonyms: ${d.synonyms.join(", ")}]` : ""}`,
+        `- ${d.name} (${d.displayName}): ${d.description} [${d.table}.${d.column}, type: ${d.type}]${d.synonyms?.length ? ` [synonyms: ${d.synonyms.join(", ")}]` : ""}`,
     )
     .join("\n");
 
-  return SYSTEM_PROMPT.replace("{{METRICS}}", metricsDesc).replace(
-    "{{DIMENSIONS}}",
-    dimensionsDesc,
-  );
+  return SYSTEM_PROMPT
+    .replaceAll("{{CURRENT_DATE}}", currentDate!)
+    .replace("{{METRICS}}", metricsDesc)
+    .replace("{{DIMENSIONS}}", dimensionsDesc);
 }
 
 function buildUserMessage(

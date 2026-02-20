@@ -127,11 +127,16 @@ export async function executeQuery(
     try {
       // Set statement timeout
       if (mergedConfig.timeoutMs > 0) {
-        await client.query(`SET LOCAL statement_timeout = '${mergedConfig.timeoutMs}ms'`);
+        await client.query({ text: `SET LOCAL statement_timeout = '${mergedConfig.timeoutMs}ms'` });
       }
 
-      // Execute the query
-      const result = await client.query(guardedSql, params);
+      // Execute the query. Use object form without "name" so we don't use named prepared
+      // statements, which are incompatible with Supabase Transaction mode (port 6543)
+      // and other poolers. See: https://supabase.com/docs/guides/troubleshooting/disabling-prepared-statements-qL8lEL
+      const result = await client.query({
+        text: guardedSql,
+        values: params ?? [],
+      });
 
       const executionTimeMs = Date.now() - startTime;
 

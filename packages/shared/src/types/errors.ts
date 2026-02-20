@@ -3,6 +3,9 @@ import { z } from "zod";
 // ── Error Codes ───────────────────────────────────────────────────
 
 export const HeyDataErrorCodeSchema = z.enum([
+  // Config errors
+  "CONFIG_ERROR",
+
   // Intent errors
   "INTENT_AMBIGUOUS",
   "INTENT_UNRESOLVABLE",
@@ -73,8 +76,8 @@ export const SqlValidationIssueSchema = z.object({
   type: z.enum(["syntax", "semantic", "performance", "security", "intent_mismatch"]),
   severity: z.enum(["error", "warning", "info"]),
   message: z.string(),
-  suggestion: z.string().optional(),
-  line: z.number().int().positive().optional(),
+  suggestion: z.string().nullish(),
+  line: z.number().int().positive().nullish(),
 });
 
 export type SqlValidationIssue = z.infer<typeof SqlValidationIssueSchema>;

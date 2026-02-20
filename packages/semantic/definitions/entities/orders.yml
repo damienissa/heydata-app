@@ -1,0 +1,13 @@
+name: orders
+table: orders
+description: Customer orders
+primaryKey: order_id
+relationships:
+  - target: customers
+    foreignKey: customer_id
+    targetKey: customer_id
+    type: one-to-many
+    joinType: left
+owner: analytics-team
+tags:
+  - core

@@ -1,0 +1,21 @@
+name: customer_count
+displayName: Unique Customers
+description: Number of unique customers who placed orders
+formula: COUNT(DISTINCT orders.customer_id)
+grain: daily
+dimensions:
+  - date
+  - region
+  - customer_segment
+synonyms:
+  - customers
+  - unique buyers
+  - buyers
+  - active customers
+formatting:
+  type: number
+  decimalPlaces: 0
+owner: analytics-team
+tags:
+  - core
+  - customers

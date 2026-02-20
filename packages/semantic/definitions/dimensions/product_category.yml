@@ -1,0 +1,16 @@
+name: product_category
+displayName: Product Category
+description: Main product category
+table: products
+column: category
+type: string
+synonyms:
+  - category
+  - product type
+  - item category
+formatting:
+  type: text
+owner: analytics-team
+tags:
+  - core
+  - products

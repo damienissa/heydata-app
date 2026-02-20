@@ -154,17 +154,17 @@ pnpm add -D tsup vitest
 mkdir -p packages/semantic/src/schemas packages/semantic/definitions
 cd packages/semantic && pnpm init
 # Set name to @heydata/semantic in package.json
-pnpm add zod js-yaml
+pnpm add zod js-yaml @heydata/shared
 pnpm add -D @types/js-yaml tsup vitest
 ```
 
-- [ ] `pnpm init` in `packages/semantic` — `package.json` with name `@heydata/semantic`
-- [ ] `tsconfig.json` + `tsup.config.ts`
-- [ ] `src/schemas/` — Zod schemas for metric/dimension/entity YAML files
-- [ ] `src/loader.ts` — `js-yaml` parser + Zod validation
-- [ ] `src/registry.ts` — in-memory lookup by name/synonym
-- [ ] `definitions/` — example YAML files (daily_revenue, etc.)
-- [ ] Unit tests
+- [x] `pnpm init` in `packages/semantic` — `package.json` with name `@heydata/semantic`
+- [x] `tsconfig.json` + `tsup.config.ts` + `vitest.config.ts`
+- [x] `src/schemas/` — Zod schemas for metric/dimension/entity YAML files
+- [x] `src/loader.ts` — `js-yaml` parser + Zod validation
+- [x] `src/registry.ts` — in-memory lookup by name/synonym
+- [x] `definitions/` — example YAML files (revenue, orders, dimensions, entities)
+- [x] Unit tests
 
 ---
 

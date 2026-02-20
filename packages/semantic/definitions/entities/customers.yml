@@ -1,0 +1,7 @@
+name: customers
+table: customers
+description: Customer information
+primaryKey: customer_id
+owner: analytics-team
+tags:
+  - core

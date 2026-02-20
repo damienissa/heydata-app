@@ -1,0 +1,17 @@
+name: region
+displayName: Region
+description: Customer geographic region
+table: customers
+column: region
+type: string
+synonyms:
+  - geography
+  - location
+  - area
+  - geo
+formatting:
+  type: text
+owner: analytics-team
+tags:
+  - core
+  - geography

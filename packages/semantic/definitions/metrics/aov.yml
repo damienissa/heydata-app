@@ -1,0 +1,23 @@
+name: average_order_value
+displayName: Average Order Value
+description: Average value per order
+formula: SUM(orders.total_amount) / COUNT(DISTINCT orders.order_id)
+grain: daily
+dimensions:
+  - date
+  - product_category
+  - region
+  - customer_segment
+synonyms:
+  - AOV
+  - avg order
+  - average transaction
+  - order average
+formatting:
+  type: currency
+  currencyCode: USD
+  decimalPlaces: 2
+owner: analytics-team
+tags:
+  - core
+  - finance

@@ -34,11 +34,13 @@ Capture user intent and render results. The entry point for all user interaction
 ## Interfaces
 
 **Sends to `@heydata/core`:**
+
 - User message (string)
 - Conversation history (array of prior turns)
 - Session context (user identity, active session state)
 
 **Receives from `@heydata/core`:**
+
 - Visualization specification (passed to `@heydata/renderer`)
 - Enriched result set (passed to `@heydata/renderer`)
 - Narrative text
@@ -47,5 +49,6 @@ Capture user intent and render results. The entry point for all user interaction
 - Error messages and clarification requests
 
 **Renders via `@heydata/renderer`:**
+
 - Interactive charts and data tables
 - Narrative summaries

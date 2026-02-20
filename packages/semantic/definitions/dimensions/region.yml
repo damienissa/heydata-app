@@ -1,17 +1,16 @@
 name: region
 displayName: Region
-description: Customer geographic region
-table: customers
+description: Geographic region (e.g. state, province)
+table: click_logs
 column: region
 type: string
 synonyms:
   - geography
-  - location
   - area
-  - geo
+  - state
 formatting:
   type: text
-owner: analytics-team
+owner: platform
 tags:
   - core
   - geography

@@ -1,0 +1,10 @@
+name: click_logs
+table: click_logs
+description: Click events on short links (UA, geo, UTM, device)
+primaryKey: id
+relationships: []
+owner: platform
+tags:
+  - core
+  - analytics
+  - clicks

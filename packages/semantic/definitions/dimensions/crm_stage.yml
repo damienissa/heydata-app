@@ -1,0 +1,15 @@
+name: crm_stage
+displayName: CRM stage
+description: CRM account stage (new, contacted, trial, paid, churned, etc.)
+table: crm_accounts
+column: stage
+type: string
+synonyms:
+  - stage
+  - pipeline stage
+  - account stage
+formatting:
+  type: text
+owner: platform
+tags:
+  - crm

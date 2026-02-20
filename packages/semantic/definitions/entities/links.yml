@@ -1,0 +1,14 @@
+name: links
+table: links
+description: Short links (permanent) owned by users; composite key (user_id, slug)
+primaryKey: slug
+relationships:
+  - target: click_logs
+    foreignKey: slug
+    targetKey: slug
+    type: one-to-many
+    joinType: left
+owner: platform
+tags:
+  - core
+  - links

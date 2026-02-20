@@ -1,0 +1,17 @@
+name: link_slug
+displayName: Link slug
+description: Short link identifier (slug)
+table: links
+column: slug
+type: string
+synonyms:
+  - slug
+  - link
+  - short link
+  - link id
+formatting:
+  type: text
+owner: platform
+tags:
+  - core
+  - links

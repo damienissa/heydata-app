@@ -1,0 +1,16 @@
+name: country_code
+displayName: Country code
+description: ISO country code (clicks or installs)
+table: click_logs
+column: country_code
+type: string
+synonyms:
+  - country
+  - geography
+  - region code
+formatting:
+  type: text
+owner: platform
+tags:
+  - core
+  - geography

@@ -1,0 +1,17 @@
+name: utm_source
+displayName: UTM source
+description: UTM campaign source
+table: click_logs
+column: utm_source
+type: string
+synonyms:
+  - source
+  - campaign source
+  - utm
+formatting:
+  type: text
+owner: platform
+tags:
+  - core
+  - attribution
+  - utm

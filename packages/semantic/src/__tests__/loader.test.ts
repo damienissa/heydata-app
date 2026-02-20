@@ -12,10 +12,10 @@ describe("loadMetrics", () => {
     expect(result.errors).toHaveLength(0);
 
     // Check a specific metric
-    const revenue = result.metrics.find((m) => m.name === "revenue");
-    expect(revenue).toBeDefined();
-    expect(revenue?.formula).toContain("SUM");
-    expect(revenue?.synonyms).toContain("sales");
+    const totalClicks = result.metrics.find((m) => m.name === "total_clicks");
+    expect(totalClicks).toBeDefined();
+    expect(totalClicks?.formula).toContain("COUNT");
+    expect(totalClicks?.synonyms).toContain("clicks");
   });
 
   it("should return errors for non-existent path", () => {
@@ -33,10 +33,10 @@ describe("loadDimensions", () => {
     expect(result.errors).toHaveLength(0);
 
     // Check a specific dimension
-    const date = result.dimensions.find((d) => d.name === "date");
-    expect(date).toBeDefined();
-    expect(date?.type).toBe("date");
-    expect(date?.table).toBe("orders");
+    const clickDate = result.dimensions.find((d) => d.name === "click_date");
+    expect(clickDate).toBeDefined();
+    expect(clickDate?.type).toBe("date");
+    expect(clickDate?.table).toBe("click_logs");
   });
 });
 
@@ -48,10 +48,10 @@ describe("loadEntities", () => {
     expect(result.errors).toHaveLength(0);
 
     // Check relationships
-    const orders = result.entities.find((e) => e.name === "orders");
-    expect(orders).toBeDefined();
-    expect(orders?.relationships).toBeDefined();
-    expect(orders?.relationships?.length).toBeGreaterThan(0);
+    const links = result.entities.find((e) => e.name === "links");
+    expect(links).toBeDefined();
+    expect(links?.relationships).toBeDefined();
+    expect(links?.relationships?.length).toBeGreaterThan(0);
   });
 });
 

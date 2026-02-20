@@ -1,0 +1,10 @@
+name: app_installs
+table: app_installs
+description: App install events (matched to clicks, geo, device, metadata)
+primaryKey: id
+relationships: []
+owner: platform
+tags:
+  - core
+  - analytics
+  - installs

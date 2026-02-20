@@ -1,0 +1,14 @@
+name: promocodes
+table: promocodes
+description: Promo codes (discount type, value, validity, uses)
+primaryKey: id
+relationships:
+  - target: promocode_redemptions
+    foreignKey: id
+    targetKey: promocode_id
+    type: one-to-many
+    joinType: left
+owner: platform
+tags:
+  - billing
+  - promos

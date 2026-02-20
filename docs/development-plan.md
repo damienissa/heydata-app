@@ -165,6 +165,7 @@ pnpm add -D @types/js-yaml tsup vitest
 - [x] `src/registry.ts` — in-memory lookup by name/synonym
 - [x] `definitions/` — example YAML files (revenue, orders, dimensions, entities)
 - [x] Unit tests
+- [x] Semantic layer aligned with DB schema — entities (links, click_logs, app_installs, user_profiles, user_subscriptions, usage_tracking, crm_*, promocodes), dimensions (click_date, install_date, geo, UTM, plan_type, crm_stage, etc.), metrics (total_clicks, total_installs, matched_installs, total_links, active_users, crm_accounts_count, emails_sent, links_created, subscribers_count)
 
 ---
 

@@ -1,7 +1,0 @@
-name: products
-table: products
-description: Product catalog
-primaryKey: product_id
-owner: analytics-team
-tags:
-  - core

@@ -1,0 +1,8 @@
+name: crm_tasks
+table: crm_tasks
+description: CRM tasks (open/done/canceled, due_at)
+primaryKey: id
+relationships: []
+owner: platform
+tags:
+  - crm

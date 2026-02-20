@@ -1,0 +1,16 @@
+name: subscription_status
+displayName: Subscription status
+description: Subscription status (active, canceled, past_due, paused)
+table: user_subscriptions
+column: status
+type: string
+synonyms:
+  - status
+  - sub status
+  - billing status
+formatting:
+  type: text
+owner: platform
+tags:
+  - core
+  - billing

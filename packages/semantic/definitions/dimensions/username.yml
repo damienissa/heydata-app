@@ -1,0 +1,16 @@
+name: username
+displayName: Username
+description: User profile username (unique)
+table: user_profiles
+column: username
+type: string
+synonyms:
+  - user
+  - account
+  - handle
+formatting:
+  type: text
+owner: platform
+tags:
+  - core
+  - users

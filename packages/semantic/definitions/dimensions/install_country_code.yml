@@ -1,0 +1,16 @@
+name: install_country_code
+displayName: Install country code
+description: Country code at app install time
+table: app_installs
+column: country_code
+type: string
+synonyms:
+  - install country
+  - install geography
+formatting:
+  type: text
+owner: platform
+tags:
+  - core
+  - geography
+  - installs

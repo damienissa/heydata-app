@@ -1,0 +1,8 @@
+name: promocode_redemptions
+table: promocode_redemptions
+description: Redemptions of promo codes by users
+primaryKey: id
+owner: platform
+tags:
+  - billing
+  - promos

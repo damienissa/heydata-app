@@ -1,0 +1,19 @@
+name: matched_installs
+displayName: Matched installs
+description: App installs matched to a click
+formula: COUNT(CASE WHEN app_installs.matched = true THEN 1 END)
+grain: daily
+dimensions:
+  - install_date
+  - install_country_code
+synonyms:
+  - attributed installs
+  - matched app installs
+formatting:
+  type: number
+  decimalPlaces: 0
+owner: platform
+tags:
+  - core
+  - analytics
+  - installs

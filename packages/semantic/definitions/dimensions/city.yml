@@ -1,0 +1,15 @@
+name: city
+displayName: City
+description: City name from click or install
+table: click_logs
+column: city
+type: string
+synonyms:
+  - location
+  - town
+formatting:
+  type: text
+owner: platform
+tags:
+  - core
+  - geography

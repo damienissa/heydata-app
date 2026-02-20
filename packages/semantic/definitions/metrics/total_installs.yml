@@ -1,0 +1,20 @@
+name: total_installs
+displayName: Total app installs
+description: Number of app install events
+formula: COUNT(app_installs.id)
+grain: daily
+dimensions:
+  - install_date
+  - install_country_code
+synonyms:
+  - installs
+  - app installs
+  - install count
+formatting:
+  type: number
+  decimalPlaces: 0
+owner: platform
+tags:
+  - core
+  - analytics
+  - installs

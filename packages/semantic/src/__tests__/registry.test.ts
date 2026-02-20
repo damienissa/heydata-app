@@ -224,8 +224,8 @@ describe("loadRegistry", () => {
     expect(stats.dimensions).toBeGreaterThan(0);
 
     // Test synonym lookup
-    const revenue = registry.getMetric("sales"); // Synonym for revenue
-    expect(revenue).toBeDefined();
-    expect(revenue?.name).toBe("revenue");
+    const totalClicks = registry.getMetric("clicks"); // Synonym for total_clicks
+    expect(totalClicks).toBeDefined();
+    expect(totalClicks?.name).toBe("total_clicks");
   });
 });

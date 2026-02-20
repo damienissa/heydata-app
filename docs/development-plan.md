@@ -174,17 +174,17 @@ pnpm add -D @types/js-yaml tsup vitest
 mkdir -p packages/bridge/src
 cd packages/bridge && pnpm init
 # Set name to @heydata/bridge in package.json
-pnpm add pg
+pnpm add pg @heydata/shared
 pnpm add -D @types/pg tsup vitest
 ```
 
-- [ ] `pnpm init` in `packages/bridge` — `package.json` with name `@heydata/bridge`
-- [ ] `tsconfig.json` + `tsup.config.ts`
-- [ ] `src/pool.ts` — `pg.Pool` setup, connection config
-- [ ] `src/guards.ts` — SQL keyword deny-list, row limit injection, timeout enforcement
-- [ ] `src/executor.ts` — `executeQuery(sql, params)` → `ResultSet`
-- [ ] `src/errors.ts` — bridge-specific error types
-- [ ] Unit tests (mocked `pg` client)
+- [x] `pnpm init` in `packages/bridge` — `package.json` with name `@heydata/bridge`
+- [x] `tsconfig.json` + `tsup.config.ts` + `vitest.config.ts`
+- [x] `src/pool.ts` — `pg.Pool` setup, connection config from env
+- [x] `src/guards.ts` — SQL keyword deny-list, row limit injection, timeout enforcement
+- [x] `src/executor.ts` — `executeQuery(sql, params)` → `ResultSet`
+- [x] `src/errors.ts` — bridge-specific error types
+- [x] Unit tests (mocked `pg` client)
 
 ---
 

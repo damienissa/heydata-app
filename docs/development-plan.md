@@ -40,17 +40,17 @@ cd packages/shared && pnpm init
 pnpm add -D tsup vitest
 ```
 
-- [ ] `pnpm init` in `packages/shared` — `package.json` with name `@heydata/shared`
-- [ ] `tsconfig.json` (extends `../../configs/tsconfig.base.json`)
-- [ ] `src/types/intent.ts` — `IntentObject`
-- [ ] `src/types/result.ts` — `ResultSet`
-- [ ] `src/types/visualization.ts` — `VisualizationSpec`
-- [ ] `src/types/agent.ts` — `AgentTrace`
-- [ ] `src/types/errors.ts` — error types and codes
-- [ ] `src/types/semantic.ts` — `MetricDefinition`, `DimensionDefinition`, `EntityRelationship`
-- [ ] `src/index.ts` — barrel export
-- [ ] `tsup.config.ts`
-- [ ] Unit tests (Vitest — schema validation)
+- [x] `pnpm init` in `packages/shared` — `package.json` with name `@heydata/shared`
+- [x] `tsconfig.json` (extends `../../configs/tsconfig.base.json`)
+- [x] `src/types/intent.ts` — `IntentObject`
+- [x] `src/types/result.ts` — `ResultSet`
+- [x] `src/types/visualization.ts` — `VisualizationSpec`
+- [x] `src/types/agent.ts` — `AgentTrace`
+- [x] `src/types/errors.ts` — error types and codes
+- [x] `src/types/semantic.ts` — `MetricDefinition`, `DimensionDefinition`, `EntityRelationship`
+- [x] `src/index.ts` — barrel export
+- [x] `tsup.config.ts`
+- [x] Unit tests (Vitest — schema validation)
 
 ---
 

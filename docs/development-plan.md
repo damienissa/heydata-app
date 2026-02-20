@@ -71,16 +71,16 @@ pnpm add @heydata/shared
 ```
 
 - [x] `pnpm dlx create-next-app@latest` — bootstraps Next.js with TypeScript, Tailwind, App Router
-- [ ] `package.json` — rename to `@heydata/web`, add `@heydata/shared` dependency
-- [ ] `tsconfig.json` — update to extend `../../configs/tsconfig.base.json`
-- [ ] `src/app/globals.css` — Tailwind directives
-- [ ] `src/app/layout.tsx` (root layout, metadata, font)
+- [x] `package.json` — rename to `@heydata/web`, add `@heydata/shared` dependency
+- [x] `tsconfig.json` — update to extend `../../configs/tsconfig.base.json`
+- [x] `src/app/globals.css` — Tailwind directives
+- [x] `src/app/layout.tsx` (root layout, metadata, font)
 
 ### 3b. Shell Layout
 
-- [ ] `src/components/layout/AppShell.tsx` (sidebar + main area two-column)
-- [ ] `src/components/layout/Sidebar.tsx` (conversation list, new chat button)
-- [ ] `src/components/layout/Header.tsx`
+- [x] `src/components/layout/AppShell.tsx` (sidebar + main area two-column)
+- [x] `src/components/layout/Sidebar.tsx` (conversation list, new chat button)
+- [x] `src/components/layout/Header.tsx`
 
 ### 3c. Chat Interface
 

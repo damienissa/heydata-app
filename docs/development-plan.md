@@ -190,9 +190,11 @@ pnpm add -D @types/pg tsup vitest
 
 ## Phase 8 — Integration & Wiring
 
-- [ ] Wire `@heydata/web` API route → `@heydata/core` orchestrator
-- [ ] Wire orchestrator → `@heydata/bridge` executor
-- [ ] Wire orchestrator → `@heydata/semantic` registry
-- [ ] Render `VisualizationSpec` from core response using `@heydata/renderer` in web canvas
+- [x] Wire `@heydata/web` API route → `@heydata/core` orchestrator
+- [x] Add `@heydata/core`, `@heydata/semantic`, `@heydata/bridge` to web dependencies
+- [x] Create `/api/query` route that uses orchestrator with mock data
+- [x] Create `useQuery` hook for client-side query execution
+- [x] Create `QueryResult` component for displaying enriched results
+- [x] Render `VisualizationSpec` from core response using `@heydata/renderer`
 - [ ] End-to-end smoke test (real Anthropic API + real Postgres)
 - [ ] Playwright E2E: submit query → see chart rendered

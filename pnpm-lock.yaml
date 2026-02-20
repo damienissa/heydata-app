@@ -184,9 +184,18 @@ importers:
       '@assistant-ui/react-markdown':
         specifier: ^0.12.4
         version: 0.12.4(@assistant-ui/react@0.12.11(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3)))(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@heydata/bridge':
+        specifier: workspace:*
+        version: link:../bridge
+      '@heydata/core':
+        specifier: workspace:*
+        version: link:../core
       '@heydata/renderer':
         specifier: workspace:*
         version: link:../renderer
+      '@heydata/semantic':
+        specifier: workspace:*
+        version: link:../semantic
       '@heydata/shared':
         specifier: workspace:*
         version: link:../shared

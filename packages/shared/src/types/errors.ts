@@ -31,6 +31,10 @@ export const HeyDataErrorCodeSchema = z.enum([
   "AGENT_ERROR",
   "ORCHESTRATION_ERROR",
 
+  // Connection/semantic lookup
+  "CONNECTION_NOT_FOUND",
+  "SEMANTIC_LAYER_NOT_FOUND",
+
   // Semantic layer errors
   "METRIC_NOT_FOUND",
   "DIMENSION_NOT_FOUND",

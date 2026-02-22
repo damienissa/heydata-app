@@ -249,10 +249,10 @@ Update all docs to define the target architecture for universal, database-agnost
 
 ## Phase 13 — Dynamic Orchestration + Chat History
 
-- [ ] Rewire orchestrator: `processQueryForConnection(connectionId, question, sessionId)` — loads connection + semantic from Supabase dynamically
-- [ ] Chat history persistence: save/load sessions and messages via Supabase
-- [ ] Session API routes (list, create, get, delete)
-- [ ] Update web UI: real session list in sidebar, connection/session context in chat
+- [x] Rewire orchestrator: `processQueryForConnection(connectionId, question, sessionId)` — loads connection + semantic from Supabase dynamically
+- [x] Chat history persistence: save/load sessions and messages via Supabase
+- [x] Session API routes (list, create, get, delete)
+- [x] Update web UI: real session list in sidebar, connection/session context in chat
 
 ---
 

@@ -7,7 +7,7 @@
 ## Agent Overview
 
 | # | Agent | Role |
-|---|---|---|
+| --- | --- | --- |
 | 0 | Orchestrator | Routes the pipeline; manages state, retries, and context |
 | 1 | Intent Resolver | Parses user language into a structured intent object |
 | 2 | SQL Generator | Translates structured intent into executable SQL |
@@ -16,12 +16,13 @@
 | 5 | Data Analyzer | Extracts statistical patterns and insights from results |
 | 6 | Visualization Planner | Decides how to visually represent the data |
 | 7 | Narrative | Writes human-readable summaries alongside visualizations |
+| 8 | Semantic Generator | Auto-generates semantic layer from introspected database schema |
 
 ---
 
-## Agent Pipeline — Typical Flow
+## Agent Pipeline — Query Flow
 
-```
+```text
 User Query
   │
   ▼
@@ -72,6 +73,39 @@ User Query
 
 ---
 
+## Agent Pipeline — Onboarding Flow (Semantic Generation)
+
+```text
+User connects new database
+  │
+  ▼
+[@heydata/bridge — Introspection]
+  ├── Queries information_schema
+  ├── Returns: tables, columns, types, foreign keys
+  │
+  ▼
+┌───────────────────────────┐
+│ Semantic Generator Agent   │
+│                            │
+│ Analyzes schema to produce:│
+│ ├── Entities + relationships│
+│ ├── Dimensions (categorical,│
+│ │   temporal, geographic)  │
+│ ├── Metrics (COUNT, SUM,   │
+│ │   AVG with formulas)     │
+│ ├── Synonyms for each      │
+│ └── Formatting rules       │
+└─────────────┬─────────────┘
+              │
+              ▼
+[@heydata/supabase] stores in semantic_layers table
+              │
+              ▼
+[@heydata/web] user reviews + edits → ready to chat
+```
+
+---
+
 ## Agent Specifications
 
 ### 3.0: Orchestrator Agent
@@ -79,6 +113,7 @@ User Query
 **Role:** The conductor. Receives the user query and decides which agents to invoke, in what order, and how data flows between them.
 
 **Responsibilities:**
+
 - Analyzes user intent at a high level (new query, follow-up, clarification, correction)
 - Builds an execution plan (which agents are needed for this request)
 - Routes data between agents
@@ -96,6 +131,7 @@ User Query
 **Role:** Understand what the user is really asking.
 
 **Responsibilities:**
+
 - Classifies query type: trend, comparison, ranking, anomaly detection, drill-down, aggregation, etc.
 - Resolves time references ("last month", "YTD", "since launch")
 - Detects follow-up intent ("now break that down by…", "same but for Q3")
@@ -112,6 +148,7 @@ User Query
 **Role:** Transform structured intent into executable SQL.
 
 **Responsibilities:**
+
 - Receives the resolved intent and translates it into SQL
 - Uses semantic layer definitions to build correct joins, aggregations, and filters
 - Adapts SQL dialect to the target data warehouse
@@ -128,6 +165,7 @@ User Query
 **Role:** Quality gate — catch errors before they hit the warehouse.
 
 **Responsibilities:**
+
 - Validates syntax correctness for the target dialect
 - Checks semantic correctness against the schema (do referenced tables/columns exist?)
 - Detects dangerous patterns (full table scans, cartesian joins, missing WHERE clauses on large tables)
@@ -149,6 +187,7 @@ User Query
 This agent sits between query execution and analysis. Even if the SQL is syntactically valid and passes the SQL Validator, the results may not match what the user intended.
 
 **Responsibilities:**
+
 - **Schema check** — Do returned columns match expected metrics and dimensions from the intent?
 - **Sanity check** — Are row counts reasonable? (e.g., asking for "daily revenue last month" should return ~30 rows, not 3 million)
 - **Completeness check** — Are there missing dates, gaps in time series, or unexpected NULL concentrations?
@@ -168,6 +207,7 @@ This agent sits between query execution and analysis. Even if the SQL is syntact
 **Role:** Inspect raw query results and extract statistical insights.
 
 **Responsibilities:**
+
 - Activated after query execution returns data
 - Detects patterns: trends, outliers, anomalies, significant changes
 - Computes derived statistics: growth rates, averages, percentiles, variance
@@ -184,6 +224,7 @@ This agent sits between query execution and analysis. Even if the SQL is syntact
 **Role:** Decide how to best visually represent the data.
 
 **Responsibilities:**
+
 - Selects optimal chart type based on: data shape, query intent, number of dimensions, data volume
 - Defines the visualization specification: axes, series, colors, legends, labels, formatting
 - Handles special cases: dual-axis charts, small multiples, KPI cards for single values
@@ -200,6 +241,7 @@ This agent sits between query execution and analysis. Even if the SQL is syntact
 **Role:** Generate human-readable insight summaries alongside visualizations.
 
 **Responsibilities:**
+
 - Writes concise, natural language summaries of what the data shows
 - Highlights key findings from the Data Analyzer (trends, anomalies, comparisons)
 - Adapts tone to user persona (executive summary vs. analyst detail)
@@ -208,6 +250,29 @@ This agent sits between query execution and analysis. Even if the SQL is syntact
 
 **Input:** Enriched result set + insight annotations + intent object
 **Output:** Narrative text (summary + key callouts)
+
+---
+
+### 3.8: Semantic Generator Agent
+
+**Role:** Auto-generate a semantic layer from an introspected database schema.
+
+This agent is invoked during the **onboarding flow** when a user connects a new database, not during the query pipeline. It analyzes the database structure and produces meaningful business-level definitions that power the query pipeline.
+
+**Responsibilities:**
+
+- Analyzes introspected schema (tables, columns, types, foreign keys)
+- Identifies entities and maps their relationships from foreign key constraints
+- Classifies columns as dimensions (categorical, temporal, geographic) or potential metric sources
+- Generates meaningful aggregate metrics with SQL formulas (COUNT, SUM, AVG, etc.)
+- Creates natural language synonyms for each metric and dimension for fuzzy matching
+- Sets formatting rules (number, currency, percentage, date) based on column types and names
+- Outputs valid definitions matching existing Zod schemas
+
+**Input:** `IntrospectedSchema` — tables, columns, data types, foreign keys, constraints
+**Output:** `{ metrics: MetricDefinition[], dimensions: DimensionDefinition[], entities: EntityYaml[] }`
+
+**Not part of the query retry loop** — this agent runs once during onboarding and can be re-triggered manually by the user.
 
 ---
 
@@ -224,7 +289,7 @@ This agent sits between query execution and analysis. Even if the SQL is syntact
 
 ## Key Design Decisions
 
-- **Parallel vs. sequential:** Can Viz Planner and Narrative Agent run in parallel after Data Analyzer?
-- **Agent-per-model:** Should different agents use different LLM models (e.g., cheaper model for validation, stronger model for SQL generation)?
-- **Caching at agent level:** Can we cache Intent Resolver outputs for similar queries?
-- **Human-in-the-loop:** At which agent boundaries should the user be able to intervene? (e.g., confirm intent before SQL generation)
+- **Parallel vs. sequential:** Viz Planner and Narrative Agent run in parallel after Data Analyzer
+- **Agent-per-model:** Different agents can use different LLM models (e.g., cheaper model for validation, stronger model for SQL generation)
+- **Caching at agent level:** Intent Resolver outputs are cached for similar queries
+- **Human-in-the-loop:** Users can review semantic generation results before they are used; intent clarification is surfaced when confidence is low

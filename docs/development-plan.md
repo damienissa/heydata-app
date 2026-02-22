@@ -199,4 +199,83 @@ pnpm add -D @types/pg tsup vitest
 - [x] Render `VisualizationSpec` from core response using `@heydata/renderer`
 - [x] Connect chat to data: `/api/chat` uses `query_data` tool → `processQuery()`; thread renders `QueryDataTool` (narrative + chart)
 - [x] End-to-end smoke test (real Anthropic API + real Postgres)
+
+---
+
+## Phase 9 — Documentation: Architecture for Universal heydata
+
+Update all docs to define the target architecture for universal, database-agnostic heydata with Supabase Auth + metadata storage.
+
+- [x] `docs/architecture.md` — Add multi-user model, Supabase layer, database adapter pattern, connection lifecycle, Docker deployment
+- [x] `docs/development-plan.md` — Add Phases 9-16 with checkboxes
+- [x] `docs/data-flow.md` — Update flow with auth, connection selection, dynamic semantic loading, chat persistence
+- [x] `docs/semantic-layer.md` — Add auto-generation from schema, DB storage, registry loading modes
+- [x] `docs/agents.md` — Add `semantic-generator` agent
+- [x] `docs/cross-cutting.md` — Add auth, multi-tenancy, connection security, Docker deployment
+- [x] `README.md` — Update project description, prerequisites, quick start
+- [x] `.env.example` — Add Supabase env vars
+
+---
+
+## Phase 10 — Supabase Integration: Auth + Metadata Storage
+
+- [ ] Supabase SQL migrations: `connections`, `semantic_layers`, `chat_sessions`, `chat_messages` tables with RLS policies
+- [ ] New `@heydata/supabase` package — Supabase client, auth middleware, generated DB types
+- [ ] Auth pages: login, signup, OAuth callback
+- [ ] Next.js middleware for route protection
+- [ ] Server-side and browser-side Supabase client helpers
+- [ ] Update `.env.example` and root `package.json` workspace config
+
+---
+
+## Phase 11 — Database Adapter + Connection Management
+
+- [ ] `DatabaseAdapter` interface in `@heydata/bridge`
+- [ ] PostgreSQL adapter (refactored from existing `pool.ts` + `executor.ts`)
+- [ ] Dynamic pool manager (create/cache/dispose pools by connection ID)
+- [ ] Schema introspection via `information_schema`
+- [ ] Connection types in `@heydata/shared` (`ConnectionConfig`, `IntrospectedSchema`, etc.)
+- [ ] Connection management API routes (CRUD + introspect + test)
+
+---
+
+## Phase 12 — Semantic Auto-Generation
+
+- [ ] New `semantic-generator` agent in `@heydata/core` — LLM analyzes introspected schema → generates metrics, dimensions, entities
+- [ ] Semantic generation API routes (generate, retrieve, update)
+- [ ] Extend `SemanticRegistry` with `loadFromMetadata()` method for DB-sourced semantic data
+
+---
+
+## Phase 13 — Dynamic Orchestration + Chat History
+
+- [ ] Rewire orchestrator: `processQueryForConnection(connectionId, question, sessionId)` — loads connection + semantic from Supabase dynamically
+- [ ] Chat history persistence: save/load sessions and messages via Supabase
+- [ ] Session API routes (list, create, get, delete)
+- [ ] Update web UI: real session list in sidebar, connection/session context in chat
+
+---
+
+## Phase 14 — Onboarding UI
+
+- [ ] Connection setup page: 4-step wizard (Connect → Introspect → Generate → Done)
+- [ ] Connection form, schema preview, semantic preview components
+- [ ] Connection switcher in sidebar
+- [ ] Landing logic: no connections → `/setup`, has connections → chat
+
+---
+
+## Phase 15 — Docker Containerization
+
+- [ ] Multi-stage `Dockerfile` (Node 20 Alpine + pnpm + turbo prune + standalone Next.js)
+- [ ] `docker-compose.yml` (single app container, Supabase cloud-hosted)
+- [ ] Update `.env.example` with all env vars
+
+---
+
+## Phase 16 — E2E Testing
+
+- [ ] Playwright E2E: auth flow (login/signup)
+- [ ] Playwright E2E: connection setup wizard
 - [ ] Playwright E2E: submit query → see chart rendered
+- [ ] Playwright E2E: chat history persistence

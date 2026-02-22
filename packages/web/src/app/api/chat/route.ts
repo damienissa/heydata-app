@@ -1,5 +1,5 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { streamText, tool } from "ai";
+import { convertToModelMessages, streamText, tool, type UIMessage } from "ai";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { processQueryForConnection } from "@/lib/process-query-for-connection";
@@ -44,35 +44,6 @@ export async function POST(req: Request) {
 
     const effectiveMessages = Array.isArray(messages) ? messages : [];
     console.log("[chat] Received sessionId:", sessionId, "connectionId:", connectionId);
-
-    // Convert UI messages to simple format for the model
-    // assistant-ui sends { parts: [...] } instead of { content: ... }
-    const formattedMessages = effectiveMessages.map((msg: unknown) => {
-      const m = msg as { role: string; content?: unknown; parts?: Array<{ type: string; text?: string }> };
-      let content: string;
-
-      if (m.parts && Array.isArray(m.parts)) {
-        // assistant-ui format: extract text from parts
-        content = m.parts
-          .filter((p) => p.type === "text")
-          .map((p) => p.text || "")
-          .join("");
-      } else if (typeof m.content === "string") {
-        content = m.content;
-      } else if (Array.isArray(m.content)) {
-        content = (m.content as Array<{ type: string; text?: string }>)
-          .filter((p) => p.type === "text")
-          .map((p) => p.text || "")
-          .join("");
-      } else {
-        content = String(m.content || "");
-      }
-
-      return {
-        role: m.role as "user" | "assistant",
-        content,
-      };
-    });
 
     const queryDataTool = tool({
       description:
@@ -122,6 +93,30 @@ export async function POST(req: Request) {
       },
     });
 
+    // Convert UI messages to model format (handles tool calls/results correctly).
+    // Sanitize: ensure parts exist, and Anthropic rejects empty text blocks.
+    const sanitizedMessages = effectiveMessages.map((msg: unknown) => {
+      const m = msg as { role: string; content?: string; parts?: Array<{ type: string; text?: string } & Record<string, unknown>> };
+      let parts = m.parts && Array.isArray(m.parts) ? [...m.parts] : [];
+      if (parts.length === 0 && (m.content != null || m.role === "user" || m.role === "assistant")) {
+        const text = typeof m.content === "string" ? m.content : "";
+        parts = [{ type: "text" as const, text: text || " " }];
+      }
+      return {
+        ...m,
+        parts: parts.map((p: { type: string; text?: string } & Record<string, unknown>) =>
+          p.type === "text" && (p.text == null || p.text === "")
+            ? { ...p, text: " " }
+            : p
+        ),
+      };
+    });
+
+    const modelMessages = await convertToModelMessages(
+      sanitizedMessages as Array<Omit<UIMessage, "id">>,
+      { tools: { query_data: queryDataTool } }
+    );
+
     // Persist user message when we have a session
     if (sessionId && effectiveMessages.length > 0) {
       const lastMsg = effectiveMessages[effectiveMessages.length - 1] as {
@@ -154,7 +149,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: anthropic("claude-sonnet-4-20250514"),
       system: SYSTEM_PROMPT,
-      messages: formattedMessages,
+      messages: modelMessages,
       tools: { query_data: queryDataTool },
     });
 

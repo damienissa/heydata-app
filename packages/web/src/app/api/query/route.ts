@@ -1,3 +1,5 @@
+export const maxDuration = 60;
+
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { processQueryForConnection } from "@/lib/process-query-for-connection";

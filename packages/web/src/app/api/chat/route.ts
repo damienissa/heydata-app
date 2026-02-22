@@ -1,3 +1,5 @@
+export const maxDuration = 300;
+
 import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText, tool, type UIMessage } from "ai";
 import { z } from "zod";

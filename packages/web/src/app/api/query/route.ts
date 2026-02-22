@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
-import { processQuery } from "@/lib/orchestrator";
+import { createClient } from "@/lib/supabase/server";
+import { processQueryForConnection } from "@/lib/process-query-for-connection";
 import { HeyDataError } from "@heydata/shared";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { question, sessionId } = body as { question?: string; sessionId?: string };
+    const { question, sessionId, connectionId } = body as {
+      question?: string;
+      sessionId?: string;
+      connectionId?: string;
+    };
 
     if (!question) {
       return NextResponse.json(
@@ -14,7 +19,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const response = await processQuery({ question, sessionId });
+    if (!connectionId) {
+      return NextResponse.json(
+        { error: "connectionId is required. Select a connection to query your data." },
+        { status: 400 },
+      );
+    }
+
+    const supabase = await createClient();
+    const response = await processQueryForConnection(
+      supabase as unknown as import("@supabase/supabase-js").SupabaseClient<import("@heydata/supabase").Database>,
+      { connectionId, question, sessionId },
+    );
 
     return NextResponse.json(response);
   } catch (error) {

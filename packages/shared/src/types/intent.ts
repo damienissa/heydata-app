@@ -55,48 +55,63 @@ export type ComparisonMode = z.infer<typeof ComparisonModeSchema>;
 
 // ── Filter Clause ─────────────────────────────────────────────────
 
+type CanonicalOperator = "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "in" | "not_in" | "like" | "between";
+
+const CANONICAL_OPERATORS: CanonicalOperator[] = ["eq", "neq", "gt", "gte", "lt", "lte", "in", "not_in", "like", "between"];
+
+const OPERATOR_MAP: Record<string, CanonicalOperator> = {
+  equals: "eq",
+  equal: "eq",
+  "=": "eq",
+  not_equals: "neq",
+  "!=": "neq",
+  "<>": "neq",
+  not_contains: "not_in",
+  greater_than: "gt",
+  ">": "gt",
+  less_than: "lt",
+  "<": "lt",
+  greater_than_or_equal: "gte",
+  ">=": "gte",
+  less_than_or_equal: "lte",
+  "<=": "lte",
+  contains: "like",
+};
+
 const FilterOperatorSchema = z
-  .enum([
-    "eq",
-    "neq",
-    "gt",
-    "gte",
-    "lt",
-    "lte",
-    "in",
-    "not_in",
-    "like",
-    "between",
-    // LLM-friendly aliases (coerced to canonical form)
-    "equals",
-    "not_equals",
-    "equal",
-    "greater_than",
-    "less_than",
-    "greater_than_or_equal",
-    "less_than_or_equal",
-    "contains",
-    "not_contains",
+  .union([
+    z.enum([
+      "eq", "neq", "gt", "gte", "lt", "lte", "in", "not_in", "like", "between",
+      "equals", "not_equals", "equal", "greater_than", "less_than",
+      "greater_than_or_equal", "less_than_or_equal", "contains", "not_contains",
+      ">=", "<=", ">", "<", "=", "!=", "<>",
+    ]),
+    z.unknown(), // Accept any LLM output, will be coerced below
   ])
   .transform((v) => {
-    const map: Record<string, "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "in" | "not_in" | "like" | "between"> = {
-      equals: "eq",
-      equal: "eq",
-      not_equals: "neq",
-      not_contains: "not_in",
-      greater_than: "gt",
-      less_than: "lt",
-      greater_than_or_equal: "gte",
-      less_than_or_equal: "lte",
-      contains: "like",
-    };
-    return (map[v] ?? v) as "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "in" | "not_in" | "like" | "between";
+    const str = String(v ?? "eq").toLowerCase().trim();
+    const mapped = OPERATOR_MAP[str] ?? OPERATOR_MAP[v as string];
+    if (mapped) return mapped;
+    if (CANONICAL_OPERATORS.includes(str as CanonicalOperator)) return str as CanonicalOperator;
+    return "eq";
   });
 
+const FilterValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.array(z.union([z.string(), z.number()])),
+  z.undefined(),
+  z.null(),
+]).transform((v) => {
+  if (v === null || v === undefined) return "";
+  return v;
+});
+
 export const FilterClauseSchema = z.object({
-  dimension: z.string().min(1),
+  dimension: z.union([z.string(), z.number()]).transform((v) => String(v ?? "")),
   operator: FilterOperatorSchema,
-  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.union([z.string(), z.number()]))]),
+  value: FilterValueSchema,
 });
 
 export type FilterClause = z.infer<typeof FilterClauseSchema>;
@@ -119,14 +134,48 @@ export const IntentObjectSchema = z.object({
     .transform((v) => v ?? [])
     .default([]),
   filters: z
-    .array(FilterClauseSchema)
+    .array(z.unknown())
     .optional()
     .nullable()
-    .transform((v) => v ?? [])
+    .transform((v) => (v ?? []))
+    .transform((arr) => {
+      const result: z.infer<typeof FilterClauseSchema>[] = [];
+      for (const item of arr) {
+        const parsed = FilterClauseSchema.safeParse(item);
+        if (parsed.success && parsed.data.dimension) result.push(parsed.data);
+      }
+      return result;
+    })
     .default([]),
   timeRange: optionalTimeRange,
   comparisonMode: optionalComparisonMode.default("none"),
-  sortBy: z.string().optional().nullable().transform((v) => v ?? undefined),
+  sortBy: z
+    .union([
+      z.string(),
+      z.record(z.string(), z.unknown()),
+      z.array(z.union([z.string(), z.record(z.string(), z.unknown())])),
+    ])
+    .optional()
+    .nullable()
+    .transform((v) => {
+      if (v == null) return undefined;
+      if (typeof v === "string") return v || undefined;
+      if (Array.isArray(v)) {
+        const first = v[0];
+        if (typeof first === "string") return first || undefined;
+        if (first && typeof first === "object") {
+          const obj = first as Record<string, unknown>;
+          const val =
+            obj.dimension ?? obj.metric ?? obj.field ?? obj.column ?? obj.sortBy;
+          return typeof val === "string" ? val : undefined;
+        }
+        return undefined;
+      }
+      const obj = v as Record<string, unknown>;
+      const val =
+        obj.dimension ?? obj.metric ?? obj.field ?? obj.column ?? obj.sortBy;
+      return typeof val === "string" ? val : undefined;
+    }),
   sortOrder: z.enum(["asc", "desc"]).optional().nullable().transform((v) => v ?? undefined),
   limit: z.number().int().positive().optional().nullable().transform((v) => v ?? undefined),
   isFollowUp: z.boolean().default(false),

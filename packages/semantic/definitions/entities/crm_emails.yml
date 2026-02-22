@@ -1,8 +1,0 @@
-name: crm_emails
-table: crm_emails
-description: CRM emails (outreach/transactional, status, template)
-primaryKey: id
-relationships: []
-owner: platform
-tags:
-  - crm

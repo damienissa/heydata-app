@@ -321,7 +321,63 @@ export class SemanticRegistry {
       }
     }
 
+    this.expandMetricDimensionsFromRelationships();
+
     return { errors };
+  }
+
+  /**
+   * Expand each metric's compatible dimensions to include dimensions from
+   * related tables (via entity relationships). E.g. if app_installs has FK
+   * to user_profiles, add username (from user_profiles) to app_installs metrics.
+   */
+  private expandMetricDimensionsFromRelationships(): void {
+    const tableToDimensions = new Map<string, string[]>();
+    for (const dim of this.dimensions.values()) {
+      const key = dim.table.toLowerCase();
+      if (!tableToDimensions.has(key)) {
+        tableToDimensions.set(key, []);
+      }
+      tableToDimensions.get(key)!.push(dim.name);
+    }
+
+    for (const [metricKey, metric] of this.metrics) {
+      const tables = this.inferTablesFromFormula(metric.formula);
+      const expanded = new Set(metric.dimensions ?? []);
+
+      for (const table of tables) {
+        const directDims = tableToDimensions.get(table.toLowerCase());
+        if (directDims) {
+          for (const d of directDims) expanded.add(d);
+        }
+
+        for (const rel of this.relationships) {
+          if (rel.from.table.toLowerCase() === table.toLowerCase()) {
+            const relatedDims = tableToDimensions.get(rel.to.table.toLowerCase());
+            if (relatedDims) {
+              for (const d of relatedDims) expanded.add(d);
+            }
+          }
+        }
+      }
+
+      const newDims = Array.from(expanded);
+      if (newDims.length !== (metric.dimensions?.length ?? 0)) {
+        this.metrics.set(metricKey, { ...metric, dimensions: newDims });
+      }
+    }
+  }
+
+  private inferTablesFromFormula(formula: string): string[] {
+    const tables = new Set<string>();
+    const tableColumn = /([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = tableColumn.exec(formula)) !== null) {
+      tables.add(m[1]!);
+    }
+    const fromMatch = formula.match(/\bFROM\s+([a-zA-Z0-9_]+)/i);
+    if (fromMatch) tables.add(fromMatch[1]!);
+    return Array.from(tables);
   }
 
   /**

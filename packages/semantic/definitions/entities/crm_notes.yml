@@ -1,8 +1,0 @@
-name: crm_notes
-table: crm_notes
-description: CRM notes attached to user accounts
-primaryKey: id
-relationships: []
-owner: platform
-tags:
-  - crm

@@ -45,7 +45,8 @@ DIMENSIONS (with table/column mappings):
 
 Guidelines:
 - CAREFULLY ANALYZE each metric's FORMULA to understand what it actually measures before selecting it
-- Use only dimensions listed as compatible with the selected metrics
+- Prefer dimensions listed as compatible with the selected metrics
+- If the user explicitly requests a dimension by name (e.g. "per username", "by username") and that dimension exists in DIMENSIONS, include it even if not in the metric's compatible list - the SQL generator can join tables as needed. Use lower confidence (e.g. 0.5) in such cases rather than asking for clarification
 - Match names exactly as defined; use synonyms when user terms differ
 - If ambiguous, set clarificationNeeded: true with a clarificationQuestion
 - Set confidence (0.0-1.0) based on interpretation certainty

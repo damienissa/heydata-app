@@ -2,8 +2,8 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, tool } from "ai";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { processQuery } from "@/lib/orchestrator";
 import { processQueryForConnection } from "@/lib/process-query-for-connection";
+import type { OrchestratorResponse } from "@heydata/shared";
 
 const SYSTEM_PROMPT = `You are HeyData, an AI assistant that helps users analyze their data.
 
@@ -82,20 +82,41 @@ export async function POST(req: Request) {
       }),
       execute: async ({ question }) => {
         console.log("[chat] Executing query_data tool with:", question);
-        if (connectionId) {
-          const supabase = await createClient();
-          const response = await processQueryForConnection(
-            supabase as unknown as import("@supabase/supabase-js").SupabaseClient<import("@heydata/supabase").Database>,
-            {
+        if (!connectionId) {
+          const noConnectionResponse: OrchestratorResponse = {
+            requestId: `req_${Date.now()}_no_conn`,
+            intent: {
+              queryType: "aggregation",
+              metrics: ["_none"],
+              dimensions: [],
+              filters: [],
+              comparisonMode: "none",
+              isFollowUp: false,
+              clarificationNeeded: false,
+              confidence: 0,
+            },
+            narrative: "Please select a connection from the header to query your data.",
+            trace: {
+              requestId: `req_${Date.now()}_no_conn`,
+              startedAt: new Date().toISOString(),
+              completedAt: new Date().toISOString(),
+              totalDurationMs: 0,
+              agentTraces: [],
+              totalInputTokens: 0,
+              totalOutputTokens: 0,
+            },
+          };
+          return noConnectionResponse;
+        }
+        const supabase = await createClient();
+        const response = await processQueryForConnection(
+          supabase as unknown as import("@supabase/supabase-js").SupabaseClient<import("@heydata/supabase").Database>,
+          {
             connectionId,
             question,
             sessionId: sessionId ?? undefined,
           },
-          );
-          console.log("[chat] Query response received, requestId:", response.requestId);
-          return response;
-        }
-        const response = await processQuery({ question, sessionId });
+        );
         console.log("[chat] Query response received, requestId:", response.requestId);
         return response;
       },
@@ -142,26 +163,54 @@ export async function POST(req: Request) {
         if (!sessionId || event.isAborted) return;
         try {
           const supabase = await createClient();
-          const msg = event.responseMessage as { content?: unknown } | undefined;
+          const msg = event.responseMessage as {
+            parts?: Array<Record<string, unknown>>;
+            content?: unknown;
+            toolInvocations?: unknown;
+          } | undefined;
           let content = "";
-          if (msg?.content && Array.isArray(msg.content)) {
-            content = (msg.content as Array<{ type?: string; text?: string }>)
-              .filter((p) => p.type === "text")
-              .map((p) => p.text ?? "")
-              .join("");
-          } else if (typeof msg?.content === "string") {
-            content = msg.content;
+          const toolParts: unknown[] = [];
+
+          if (msg?.parts && Array.isArray(msg.parts)) {
+            for (const p of msg.parts) {
+              if (p.type === "text" && typeof p.text === "string") {
+                content += p.text;
+              } else if (typeof p.type === "string" && p.type.startsWith("tool-")) {
+                toolParts.push({
+                  toolCallId: p.toolCallId ?? p.id,
+                  toolName: p.type.replace(/^tool-/, "") || "query_data",
+                  args: p.input ?? {},
+                  result: p.output,
+                });
+              }
+            }
+          } else if (msg?.content) {
+            if (Array.isArray(msg.content)) {
+              content = (msg.content as Array<{ type?: string; text?: string }>)
+                .filter((p) => p.type === "text")
+                .map((p) => p.text ?? "")
+                .join("");
+            } else if (typeof msg.content === "string") {
+              content = msg.content;
+            }
+            if (msg.toolInvocations && Array.isArray(msg.toolInvocations)) {
+              for (const inv of msg.toolInvocations as Array<Record<string, unknown>>) {
+                toolParts.push({
+                  toolCallId: inv.toolCallId ?? inv.id,
+                  toolName: inv.toolName ?? "query_data",
+                  args: inv.args ?? inv.input ?? {},
+                  result: inv.result ?? inv.output,
+                });
+              }
+            }
           }
-          const toolResultsJson =
-            msg && typeof msg === "object" && "toolInvocations" in msg
-              ? (msg as { toolInvocations?: unknown }).toolInvocations ?? null
-              : null;
-          const toSave = content.trim() || (toolResultsJson ? "[Query result]" : "[Response]");
+
+          const toSave = content.trim() || (toolParts.length ? "[Query result]" : "[Response]");
           await supabase.from("chat_messages").insert({
             session_id: sessionId,
             role: "assistant",
             content: toSave,
-            tool_results: toolResultsJson,
+            tool_results: toolParts.length ? toolParts : null,
           } as never);
         } catch (err) {
           console.error("[chat] Failed to persist assistant message:", err);

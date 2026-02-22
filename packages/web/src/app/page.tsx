@@ -14,7 +14,11 @@ export default function Home() {
   const [connectionId, setConnectionId] = useState<string | undefined>();
   const [sessionId, setSessionId] = useState<string | undefined>();
 
-  const { connections, isLoading: connectionsLoading } = useConnections();
+  const {
+    connections,
+    isLoading: connectionsLoading,
+    deleteConnection,
+  } = useConnections();
 
   // Landing logic: no connections → /setup
   useEffect(() => {
@@ -42,6 +46,10 @@ export default function Home() {
 
   const handleSelectSession = (id: string) => {
     setSessionId(id);
+    const session = sessions.find((s) => s.id === id);
+    if (session?.connection_id) {
+      setConnectionId(session.connection_id);
+    }
   };
 
   const handleDeleteSession = async (id: string) => {
@@ -64,7 +72,12 @@ export default function Home() {
   return (
     <ChatProvider sessionId={sessionId} connectionId={connectionId}>
       <div className="flex h-dvh flex-col bg-background">
-        <Header connections={connections} selectedConnectionId={connectionId} onSelectConnection={setConnectionId} />
+        <Header
+          connections={connections}
+          selectedConnectionId={connectionId}
+          onSelectConnection={setConnectionId}
+          onDeleteConnection={deleteConnection}
+        />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar
             conversations={conversations}

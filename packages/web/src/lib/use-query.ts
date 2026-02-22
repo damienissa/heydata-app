@@ -10,7 +10,7 @@ export interface UseQueryState {
 }
 
 export interface UseQueryReturn extends UseQueryState {
-  query: (question: string, sessionId?: string) => Promise<OrchestratorResponse | null>;
+  query: (question: string, options?: { sessionId?: string; connectionId?: string }) => Promise<OrchestratorResponse | null>;
   reset: () => void;
 }
 
@@ -24,14 +24,16 @@ export function useQuery(): UseQueryReturn {
     error: null,
   });
 
-  const query = useCallback(async (question: string, sessionId?: string) => {
+  const query = useCallback(async (question: string, options?: { sessionId?: string; connectionId?: string }) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+    const { sessionId, connectionId } = options ?? {};
 
     try {
       const res = await fetch("/api/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, sessionId }),
+        body: JSON.stringify({ question, sessionId, connectionId }),
       });
 
       if (!res.ok) {

@@ -1,9 +1,0 @@
-name: usage_tracking
-table: usage_tracking
-description: Monthly usage per user (links created, permanent vs temp)
-primaryKey: id
-relationships: []
-owner: platform
-tags:
-  - core
-  - usage

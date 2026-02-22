@@ -163,7 +163,7 @@ pnpm add -D @types/js-yaml tsup vitest
 - [x] `src/schemas/` — Zod schemas for metric/dimension/entity YAML files
 - [x] `src/loader.ts` — `js-yaml` parser + Zod validation
 - [x] `src/registry.ts` — in-memory lookup by name/synonym
-- [x] `definitions/` — example YAML files (revenue, orders, dimensions, entities)
+- [x] `definitions/` — removed; semantic layer is loaded from `semantic_layers` table (DB) via `loadRegistryFromMetadata`. Tests use inline JSON or temp-dir YAML (no fixtures)
 - [x] Unit tests
 - [x] Semantic layer aligned with DB schema — entities (links, click_logs, app_installs, user_profiles, user_subscriptions, usage_tracking, crm_*, promocodes), dimensions (click_date, install_date, geo, UTM, plan_type, crm_stage, etc.), metrics (total_clicks, total_installs, matched_installs, total_links, active_users, crm_accounts_count, emails_sent, links_created, subscribers_count)
 
@@ -197,7 +197,7 @@ pnpm add -D @types/pg tsup vitest
 - [x] Create `useQuery` hook for client-side query execution
 - [x] Create `QueryResult` component for displaying enriched results
 - [x] Render `VisualizationSpec` from core response using `@heydata/renderer`
-- [x] Connect chat to data: `/api/chat` uses `query_data` tool → `processQuery()`; thread renders `QueryDataTool` (narrative + chart)
+- [x] Connect chat to data: `/api/chat` uses `query_data` tool → `processQueryForConnection()` (requires connection); thread renders `QueryDataTool` (narrative + chart)
 - [x] End-to-end smoke test (real Anthropic API + real Postgres)
 
 ---

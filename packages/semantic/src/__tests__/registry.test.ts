@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { join } from "node:path";
-import { SemanticRegistry, loadRegistry } from "../registry.js";
+import { SemanticRegistry, loadRegistryFromMetadata } from "../registry.js";
 import type { MetricYaml, DimensionYaml, EntityYaml } from "../schemas/index.js";
 
 describe("SemanticRegistry", () => {
@@ -214,17 +213,61 @@ describe("SemanticRegistry", () => {
   });
 });
 
-describe("loadRegistry", () => {
-  it("should load from definitions directory", async () => {
-    const definitionsDir = join(import.meta.dirname, "../../definitions");
-    const registry = await loadRegistry(definitionsDir, { strict: false });
+describe("loadRegistryFromMetadata", () => {
+  it("should load from metadata (DB-style)", () => {
+    const registry = loadRegistryFromMetadata({
+      metrics: [
+        {
+          name: "total_clicks",
+          displayName: "Total clicks",
+          description: "Number of click events",
+          formula: "COUNT(click_logs.id)",
+          dimensions: ["click_date", "link_slug"],
+          synonyms: ["clicks", "click count"],
+        },
+      ],
+      dimensions: [
+        {
+          name: "click_date",
+          displayName: "Click Date",
+          description: "Date of click",
+          table: "click_logs",
+          column: "created_at",
+          type: "date",
+        },
+        {
+          name: "link_slug",
+          displayName: "Link Slug",
+          description: "Short link identifier",
+          table: "click_logs",
+          column: "link_slug",
+          type: "string",
+        },
+      ],
+      entities: [
+        {
+          name: "links",
+          table: "links",
+          primaryKey: "slug",
+          relationships: [
+            {
+              target: "click_logs",
+              foreignKey: "slug",
+              targetKey: "slug",
+              type: "one-to-many",
+              joinType: "left",
+            },
+          ],
+        },
+      ],
+    });
 
     const stats = registry.getStats();
-    expect(stats.metrics).toBeGreaterThan(0);
-    expect(stats.dimensions).toBeGreaterThan(0);
+    expect(stats.metrics).toBe(1);
+    expect(stats.dimensions).toBe(2);
+    expect(stats.relationships).toBe(1);
 
-    // Test synonym lookup
-    const totalClicks = registry.getMetric("clicks"); // Synonym for total_clicks
+    const totalClicks = registry.getMetric("clicks");
     expect(totalClicks).toBeDefined();
     expect(totalClicks?.name).toBe("total_clicks");
   });

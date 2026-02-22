@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface Connection {
   id: string;
@@ -17,26 +17,30 @@ export function useConnections() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
+  const refetch = useCallback(() => {
+    setIsLoading(true);
     fetch("/api/connections")
       .then((res) => {
         if (!res.ok) throw new Error(res.statusText);
         return res.json();
       })
-      .then((data: Connection[]) => {
-        if (!cancelled) setConnections(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        if (!cancelled) setConnections([]);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .then((data: Connection[]) => setConnections(Array.isArray(data) ? data : []))
+      .catch(() => setConnections([]))
+      .finally(() => setIsLoading(false));
   }, []);
 
-  return { connections, isLoading };
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  const deleteConnection = useCallback(async (id: string) => {
+    const res = await fetch(`/api/connections/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const json = await res.json();
+      throw new Error(json.error ?? res.statusText);
+    }
+    setConnections((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  return { connections, isLoading, refetch, deleteConnection };
 }

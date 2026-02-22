@@ -219,12 +219,12 @@ Update all docs to define the target architecture for universal, database-agnost
 
 ## Phase 10 — Supabase Integration: Auth + Metadata Storage
 
-- [ ] Supabase SQL migrations: `connections`, `semantic_layers`, `chat_sessions`, `chat_messages` tables with RLS policies
-- [ ] New `@heydata/supabase` package — Supabase client, auth middleware, generated DB types
-- [ ] Auth pages: login, signup, OAuth callback
-- [ ] Next.js middleware for route protection
-- [ ] Server-side and browser-side Supabase client helpers
-- [ ] Update `.env.example` and root `package.json` workspace config
+- [x] Supabase CLI init + SQL migrations: `connections`, `semantic_layers`, `chat_sessions`, `chat_messages` tables with RLS policies
+- [x] New `@heydata/supabase` package — Supabase client, DB types
+- [x] Auth pages: login, signup, OAuth callback
+- [x] Next.js middleware for route protection
+- [x] Server-side and browser-side Supabase client helpers (`@supabase/ssr`)
+- [x] Add `@heydata/supabase` + `@supabase/ssr` + `@supabase/supabase-js` to web dependencies
 
 ---
 

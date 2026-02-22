@@ -96,9 +96,10 @@ describe("executeQuery", () => {
 
     await executeQuery(mockPool, "SELECT * FROM users");
 
-    // Check that LIMIT was injected
+    // Check that LIMIT was injected (executor passes { text, values } to client.query)
     const queryCall = mockClient.query.mock.calls[1];
-    expect(queryCall?.[0]).toContain("LIMIT");
+    const queryArg = queryCall?.[0] as { text?: string } | undefined;
+    expect(queryArg?.text ?? queryCall?.[0]).toContain("LIMIT");
   });
 
   it("should reject forbidden operations", async () => {

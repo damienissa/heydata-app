@@ -230,12 +230,12 @@ Update all docs to define the target architecture for universal, database-agnost
 
 ## Phase 11 — Database Adapter + Connection Management
 
-- [ ] `DatabaseAdapter` interface in `@heydata/bridge`
-- [ ] PostgreSQL adapter (refactored from existing `pool.ts` + `executor.ts`)
-- [ ] Dynamic pool manager (create/cache/dispose pools by connection ID)
-- [ ] Schema introspection via `information_schema`
-- [ ] Connection types in `@heydata/shared` (`ConnectionConfig`, `IntrospectedSchema`, etc.)
-- [ ] Connection management API routes (CRUD + introspect + test)
+- [x] `DatabaseAdapter` interface in `@heydata/bridge`
+- [x] PostgreSQL adapter (refactored from existing `pool.ts` + `executor.ts`)
+- [x] Dynamic pool manager (create/cache/dispose pools by connection ID)
+- [x] Schema introspection via `information_schema`
+- [x] Connection types in `@heydata/shared` (`ConnectionConfig`, `IntrospectedSchema`, etc.)
+- [x] Connection management API routes (CRUD + introspect + test)
 
 ---
 

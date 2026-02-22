@@ -4,3 +4,4 @@ export * from "./result.js";
 export * from "./visualization.js";
 export * from "./agent.js";
 export * from "./errors.js";
+export * from "./connection.js";

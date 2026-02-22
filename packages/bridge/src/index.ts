@@ -1,4 +1,4 @@
-// Pool
+// Pool (legacy — kept for backward compat)
 export {
   createPool,
   createPoolFromEnv,
@@ -15,7 +15,7 @@ export {
   type GuardConfig,
 } from "./guards.js";
 
-// Executor
+// Executor (legacy — kept for backward compat)
 export {
   executeQuery,
   createExecutor,
@@ -29,3 +29,16 @@ export {
   timeoutError,
   forbiddenOperationError,
 } from "./errors.js";
+
+// Adapter interface
+export {
+  type DatabaseAdapter,
+  type AdapterPool,
+  type AdapterConnectionConfig,
+} from "./adapter.js";
+
+// Adapters
+export { postgresqlAdapter } from "./adapters/postgresql.js";
+
+// Pool manager
+export { PoolManager, getPoolManager } from "./pool-manager.js";

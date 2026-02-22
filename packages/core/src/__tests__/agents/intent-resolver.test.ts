@@ -17,6 +17,7 @@ describe("Intent Resolver Agent", () => {
       start: "2024-01-01",
       end: "2024-01-31",
     },
+    comparisonMode: "none",
     isFollowUp: false,
     clarificationNeeded: false,
     confidence: 0.95,
@@ -118,6 +119,7 @@ describe("Intent Resolver Agent", () => {
       metrics: ["revenue"], // At least one metric is required by schema
       dimensions: [],
       filters: [],
+      comparisonMode: "none",
       isFollowUp: false,
       clarificationNeeded: true,
       clarificationQuestion: "Which metric would you like to see? Revenue, orders, or customers?",

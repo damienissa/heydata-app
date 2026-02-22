@@ -5,6 +5,14 @@
  * In production, regenerate with: supabase gen types typescript --linked > src/types.ts
  */
 
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 export interface Database {
   public: {
     Tables: {
@@ -45,15 +53,24 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "connections_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       semantic_layers: {
         Row: {
           id: string;
           connection_id: string;
-          metrics: unknown[];
-          dimensions: unknown[];
-          entities: unknown[];
-          raw_schema: unknown | null;
+          metrics: Json;
+          dimensions: Json;
+          entities: Json;
+          raw_schema: Json | null;
           generated_at: string;
           created_at: string;
           updated_at: string;
@@ -61,10 +78,10 @@ export interface Database {
         Insert: {
           id?: string;
           connection_id: string;
-          metrics?: unknown[];
-          dimensions?: unknown[];
-          entities?: unknown[];
-          raw_schema?: unknown | null;
+          metrics?: Json;
+          dimensions?: Json;
+          entities?: Json;
+          raw_schema?: Json | null;
           generated_at?: string;
           created_at?: string;
           updated_at?: string;
@@ -72,14 +89,23 @@ export interface Database {
         Update: {
           id?: string;
           connection_id?: string;
-          metrics?: unknown[];
-          dimensions?: unknown[];
-          entities?: unknown[];
-          raw_schema?: unknown | null;
+          metrics?: Json;
+          dimensions?: Json;
+          entities?: Json;
+          raw_schema?: Json | null;
           generated_at?: string;
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "semantic_layers_connection_id_fkey";
+            columns: ["connection_id"];
+            isOneToOne: false;
+            referencedRelation: "connections";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       chat_sessions: {
         Row: {
@@ -106,6 +132,22 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "chat_sessions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "chat_sessions_connection_id_fkey";
+            columns: ["connection_id"];
+            isOneToOne: false;
+            referencedRelation: "connections";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       chat_messages: {
         Row: {
@@ -113,7 +155,7 @@ export interface Database {
           session_id: string;
           role: string;
           content: string;
-          tool_results: unknown | null;
+          tool_results: Json | null;
           created_at: string;
         };
         Insert: {
@@ -121,7 +163,7 @@ export interface Database {
           session_id: string;
           role: string;
           content: string;
-          tool_results?: unknown | null;
+          tool_results?: Json | null;
           created_at?: string;
         };
         Update: {
@@ -129,10 +171,31 @@ export interface Database {
           session_id?: string;
           role?: string;
           content?: string;
-          tool_results?: unknown | null;
+          tool_results?: Json | null;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "chat_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
       };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 }

@@ -1,7 +1,7 @@
 export const maxDuration = 300;
 
 import { anthropic } from "@ai-sdk/anthropic";
-import { convertToModelMessages, streamText, tool, type UIMessage } from "ai";
+import { convertToModelMessages, streamText, stepCountIs, tool, type UIMessage } from "ai";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { processQueryForConnection } from "@/lib/process-query-for-connection";
@@ -153,6 +153,7 @@ export async function POST(req: Request) {
       system: SYSTEM_PROMPT,
       messages: modelMessages,
       tools: { query_data: queryDataTool },
+      stopWhen: stepCountIs(2),
     });
 
     return result.toUIMessageStreamResponse({

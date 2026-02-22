@@ -199,6 +199,21 @@ const MessageError: FC = () => {
   );
 };
 
+const ThinkingIndicator: FC = () => {
+  return (
+    <AuiIf condition={(s) => s.thread.isRunning && s.message.isLast}>
+      <div className="flex items-center gap-1.5 px-1 py-1 text-sm text-muted-foreground">
+        <span className="inline-flex gap-0.5">
+          <span className="size-1.5 animate-pulse rounded-full bg-current [animation-delay:0ms]" />
+          <span className="size-1.5 animate-pulse rounded-full bg-current [animation-delay:150ms]" />
+          <span className="size-1.5 animate-pulse rounded-full bg-current [animation-delay:300ms]" />
+        </span>
+        <span>Thinking</span>
+      </div>
+    </AuiIf>
+  );
+};
+
 const AssistantMessage: FC = () => {
   return (
     <MessagePrimitive.Root
@@ -217,6 +232,7 @@ const AssistantMessage: FC = () => {
             },
           }}
         />
+        <ThinkingIndicator />
         <MessageError />
       </div>
 

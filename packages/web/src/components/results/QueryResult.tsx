@@ -20,10 +20,19 @@ export interface QueryResultProps {
 export function QueryResult({ response, className = "" }: QueryResultProps) {
   const [showDetails, setShowDetails] = useState(false);
 
-  const { narrative, visualization, results, trace } = response;
+  const { narrative, visualization, results, trace, clarificationQuestion } = response;
 
   return (
     <div className={`space-y-4 ${className}`}>
+      {/* Clarification Question */}
+      {clarificationQuestion && !narrative && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            {clarificationQuestion}
+          </p>
+        </div>
+      )}
+
       {/* Narrative Summary */}
       {narrative && (
         <div className="prose prose-sm max-w-none dark:prose-invert">

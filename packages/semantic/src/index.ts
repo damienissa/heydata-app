@@ -30,4 +30,5 @@ export {
   SemanticRegistry,
   createRegistry,
   loadRegistry,
+  loadRegistryFromMetadata,
 } from "./registry.js";

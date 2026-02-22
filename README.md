@@ -109,8 +109,8 @@ This uses YAML definitions from `packages/semantic/definitions/` instead of Supa
 | Variable | Required | Description |
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous/public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (server-side only) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Publishable key (`sb_publishable_...`) or legacy anon JWT — [API keys guide](https://supabase.com/docs/guides/api/api-keys) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Secret key (`sb_secret_...`) or legacy service_role JWT — server-side only, never expose |
 | `ANTHROPIC_API_KEY` | Yes | Anthropic API key for Claude |
 | `DATABASE_URL` | Dev only | Direct PostgreSQL connection (bypasses Supabase connections) |
 

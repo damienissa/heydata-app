@@ -5,7 +5,12 @@ import type {
   EntityRelationship,
 } from "@heydata/shared";
 import { HeyDataError } from "@heydata/shared";
+import {
+  MetricDefinitionSchema,
+  DimensionDefinitionSchema,
+} from "@heydata/shared";
 import type { MetricYaml, DimensionYaml, EntityYaml } from "./schemas/index.js";
+import { EntityYamlSchema } from "./schemas/entity.js";
 import { loadDefinitions, type LoaderOptions } from "./loader.js";
 
 /**
@@ -274,6 +279,52 @@ export class SemanticRegistry {
   }
 
   /**
+   * Load definitions from database metadata (semantic_layers table).
+   * Validates and populates the registry from metrics, dimensions, and entities JSONB.
+   */
+  loadFromMetadata(metadata: {
+    metrics: unknown;
+    dimensions: unknown;
+    entities: unknown;
+  }): { errors: string[] } {
+    const errors: string[] = [];
+    this.clear();
+
+    const metricsArr = Array.isArray(metadata.metrics) ? metadata.metrics : [];
+    const dimensionsArr = Array.isArray(metadata.dimensions) ? metadata.dimensions : [];
+    const entitiesArr = Array.isArray(metadata.entities) ? metadata.entities : [];
+
+    for (const m of metricsArr) {
+      const parsed = MetricDefinitionSchema.safeParse(m);
+      if (parsed.success) {
+        this.addMetric(parsed.data as MetricYaml);
+      } else {
+        errors.push(`Metric: ${parsed.error.message}`);
+      }
+    }
+
+    for (const d of dimensionsArr) {
+      const parsed = DimensionDefinitionSchema.safeParse(d);
+      if (parsed.success) {
+        this.addDimension(parsed.data as DimensionYaml);
+      } else {
+        errors.push(`Dimension: ${parsed.error.message}`);
+      }
+    }
+
+    for (const e of entitiesArr) {
+      const parsed = EntityYamlSchema.safeParse(e);
+      if (parsed.success) {
+        this.addEntityRelationships(parsed.data);
+      } else {
+        errors.push(`Entity: ${parsed.error.message}`);
+      }
+    }
+
+    return { errors };
+  }
+
+  /**
    * Clear all definitions
    */
   clear(): void {
@@ -312,5 +363,18 @@ export async function loadRegistry(
 ): Promise<SemanticRegistry> {
   const registry = createRegistry();
   await registry.load({ definitionsDir, strict: options?.strict });
+  return registry;
+}
+
+/**
+ * Create a registry and populate it from database metadata
+ */
+export function loadRegistryFromMetadata(metadata: {
+  metrics: unknown;
+  dimensions: unknown;
+  entities: unknown;
+}): SemanticRegistry {
+  const registry = createRegistry();
+  registry.loadFromMetadata(metadata);
   return registry;
 }

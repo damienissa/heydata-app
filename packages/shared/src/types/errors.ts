@@ -35,6 +35,7 @@ export const HeyDataErrorCodeSchema = z.enum([
   "METRIC_NOT_FOUND",
   "DIMENSION_NOT_FOUND",
   "SEMANTIC_LOAD_ERROR",
+  "SEMANTIC_GENERATION_FAILED",
 ]);
 
 export type HeyDataErrorCode = z.infer<typeof HeyDataErrorCodeSchema>;

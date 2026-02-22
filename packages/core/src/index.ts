@@ -15,6 +15,9 @@ export {
   analyzeData,
   planVisualization,
   generateNarrative,
+  generateSemantic,
+  generateSemanticFromSchema,
+  toSemanticMetadata,
   type IntentResolverInput,
   type SqlGeneratorInput,
   type SqlValidatorInput,
@@ -23,6 +26,8 @@ export {
   type DataAnalyzerInput,
   type VizPlannerInput,
   type NarrativeInput,
+  type SemanticGeneratorInput,
+  type SemanticGeneratorOutput,
 } from "./agents/index.js";
 
 // Types

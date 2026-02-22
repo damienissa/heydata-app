@@ -14,6 +14,7 @@ export const AgentNameSchema = z.enum([
   "data_analyzer",
   "viz_planner",
   "narrative",
+  "semantic_generator",
 ]);
 
 export type AgentName = z.infer<typeof AgentNameSchema>;

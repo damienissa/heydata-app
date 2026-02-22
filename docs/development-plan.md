@@ -241,9 +241,9 @@ Update all docs to define the target architecture for universal, database-agnost
 
 ## Phase 12 — Semantic Auto-Generation
 
-- [ ] New `semantic-generator` agent in `@heydata/core` — LLM analyzes introspected schema → generates metrics, dimensions, entities
-- [ ] Semantic generation API routes (generate, retrieve, update)
-- [ ] Extend `SemanticRegistry` with `loadFromMetadata()` method for DB-sourced semantic data
+- [x] New `semantic-generator` agent in `@heydata/core` — LLM analyzes introspected schema → generates metrics, dimensions, entities
+- [x] Semantic generation API routes (generate, retrieve, update)
+- [x] Extend `SemanticRegistry` with `loadFromMetadata()` method for DB-sourced semantic data
 
 ---
 

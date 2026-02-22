@@ -18,3 +18,13 @@ export type { VizPlannerInput } from "./viz-planner.js";
 
 export { generateNarrative } from "./narrative.js";
 export type { NarrativeInput } from "./narrative.js";
+
+export {
+  generateSemantic,
+  generateSemanticFromSchema,
+  toSemanticMetadata,
+} from "./semantic-generator.js";
+export type {
+  SemanticGeneratorInput,
+  SemanticGeneratorOutput,
+} from "./semantic-generator.js";

@@ -171,6 +171,9 @@ export class Orchestrator {
       console.log("[Step 1] INTENT RESOLVER - Complete");
       console.log("[Step 1] Query Type:", intentResult.data.queryType);
       console.log("[Step 1] Metrics:", intentResult.data.metrics);
+      if (intentResult.data.adHocMetrics?.length) {
+        console.log("[Step 1] Ad-Hoc Metrics:", intentResult.data.adHocMetrics.map(m => `${m.name}: ${m.formula}`));
+      }
       console.log("[Step 1] Dimensions:", intentResult.data.dimensions);
       console.log("[Step 1] Filters:", JSON.stringify(intentResult.data.filters));
       console.log("[Step 1] Time Range:", JSON.stringify(intentResult.data.timeRange));

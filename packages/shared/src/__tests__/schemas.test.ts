@@ -5,6 +5,7 @@ import {
   EntityRelationshipSchema,
   SemanticMetadataSchema,
   IntentObjectSchema,
+  AdHocMetricSchema,
   FilterClauseSchema,
   TimeRangeSchema,
   SessionContextSchema,
@@ -116,6 +117,16 @@ describe("SemanticMetadataSchema", () => {
     });
     expect(result.metrics).toHaveLength(1);
   });
+
+  it("accepts rawSchemaDDL when provided", () => {
+    const result = SemanticMetadataSchema.parse({
+      metrics: [],
+      dimensions: [],
+      relationships: [],
+      rawSchemaDDL: "orders(id uuid PK, amount numeric, created_at timestamptz)",
+    });
+    expect(result.rawSchemaDDL).toBe("orders(id uuid PK, amount numeric, created_at timestamptz)");
+  });
 });
 
 // ── Intent types ──────────────────────────────────────────────────
@@ -137,8 +148,48 @@ describe("IntentObjectSchema", () => {
     expect(IntentObjectSchema.parse(valid)).toEqual(valid);
   });
 
-  it("requires at least one metric", () => {
+  it("requires at least one predefined or ad-hoc metric", () => {
     expect(() => IntentObjectSchema.parse({ ...valid, metrics: [] })).toThrow();
+  });
+
+  it("accepts ad-hoc metrics when predefined metrics are empty", () => {
+    const result = IntentObjectSchema.parse({
+      ...valid,
+      metrics: [],
+      adHocMetrics: [
+        {
+          name: "avg_session_duration",
+          displayName: "Avg Session Duration",
+          formula: "AVG(sessions.duration_seconds)",
+          tables: ["sessions"],
+        },
+      ],
+    });
+    expect(result.metrics).toEqual([]);
+    expect(result.adHocMetrics).toHaveLength(1);
+    expect(result.adHocMetrics[0].name).toBe("avg_session_duration");
+  });
+
+  it("accepts both predefined and ad-hoc metrics", () => {
+    const result = IntentObjectSchema.parse({
+      ...valid,
+      adHocMetrics: [
+        {
+          name: "custom_metric",
+          displayName: "Custom Metric",
+          formula: "COUNT(events.id)",
+          tables: ["events"],
+          description: "Total events",
+        },
+      ],
+    });
+    expect(result.metrics).toHaveLength(1);
+    expect(result.adHocMetrics).toHaveLength(1);
+  });
+
+  it("defaults adHocMetrics to empty array when not provided", () => {
+    const result = IntentObjectSchema.parse(valid);
+    expect(result.adHocMetrics).toEqual([]);
   });
 
   it("rejects confidence > 1", () => {
@@ -147,6 +198,32 @@ describe("IntentObjectSchema", () => {
 
   it("rejects invalid query type", () => {
     expect(() => IntentObjectSchema.parse({ ...valid, queryType: "invalid" })).toThrow();
+  });
+});
+
+describe("AdHocMetricSchema", () => {
+  const valid = {
+    name: "avg_session_duration",
+    displayName: "Avg Session Duration",
+    formula: "AVG(sessions.duration_seconds)",
+    tables: ["sessions"],
+    description: "Average session duration in seconds",
+  };
+
+  it("accepts a valid ad-hoc metric", () => {
+    expect(AdHocMetricSchema.parse(valid)).toEqual(valid);
+  });
+
+  it("rejects missing formula", () => {
+    expect(() =>
+      AdHocMetricSchema.parse({ name: "x", displayName: "X", tables: ["t"] }),
+    ).toThrow();
+  });
+
+  it("rejects empty tables array", () => {
+    expect(() =>
+      AdHocMetricSchema.parse({ ...valid, tables: [] }),
+    ).toThrow();
   });
 });
 

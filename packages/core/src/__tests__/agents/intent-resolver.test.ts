@@ -11,6 +11,7 @@ describe("Intent Resolver Agent", () => {
   const validIntentResponse: IntentObject = {
     queryType: "trend",
     metrics: ["revenue"],
+    adHocMetrics: [],
     dimensions: ["date"],
     filters: [],
     timeRange: {
@@ -116,7 +117,8 @@ describe("Intent Resolver Agent", () => {
   it("should handle clarification requests", async () => {
     const clarificationIntent: IntentObject = {
       queryType: "aggregation",
-      metrics: ["revenue"], // At least one metric is required by schema
+      metrics: ["revenue"],
+      adHocMetrics: [],
       dimensions: [],
       filters: [],
       comparisonMode: "none",
@@ -138,6 +140,41 @@ describe("Intent Resolver Agent", () => {
     expect(result.data.clarificationNeeded).toBe(true);
     expect(result.data.clarificationQuestion).toBeDefined();
     expect(result.data.confidence).toBeLessThan(0.5);
+  });
+
+  it("should cap confidence when ad-hoc metrics are used", async () => {
+    const adHocResponse = {
+      queryType: "aggregation",
+      metrics: [],
+      adHocMetrics: [
+        {
+          name: "avg_session_duration",
+          displayName: "Avg Session Duration",
+          formula: "AVG(sessions.duration_seconds)",
+          tables: ["sessions"],
+        },
+      ],
+      dimensions: [],
+      filters: [],
+      comparisonMode: "none",
+      isFollowUp: false,
+      clarificationNeeded: false,
+      confidence: 0.9, // LLM returned high confidence
+    };
+
+    const { client } = createMockClient(JSON.stringify(adHocResponse));
+    const context = createMockContext(client);
+
+    const result = await resolveIntent({
+      context,
+      question: "What is the average session duration?",
+      semanticMetadata: mockSemanticMetadata,
+    });
+
+    expect(result.data.adHocMetrics).toHaveLength(1);
+    expect(result.data.metrics).toHaveLength(0);
+    // Confidence should be capped at 0.6 for ad-hoc metrics
+    expect(result.data.confidence).toBeLessThanOrEqual(0.6);
   });
 
   it("should throw HeyDataError on invalid JSON response", async () => {

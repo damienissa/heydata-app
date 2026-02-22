@@ -7,7 +7,11 @@ import type {
   SemanticMetadata,
   SessionContext,
 } from "@heydata/shared";
-import { HeyDataError } from "@heydata/shared";
+import {
+  HeyDataError,
+  IntrospectedSchemaSchema,
+  introspectedSchemaToDDL,
+} from "@heydata/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@heydata/supabase";
 
@@ -51,7 +55,7 @@ export async function processQueryForConnection(
   // 2. Load semantic layer for this connection
   const { data: layer, error: layerError } = await supabase
     .from("semantic_layers")
-    .select("metrics, dimensions, entities")
+    .select("metrics, dimensions, entities, raw_schema")
     .eq("connection_id", connectionId)
     .limit(1)
     .single();
@@ -71,6 +75,14 @@ export async function processQueryForConnection(
     entities: semanticRow.entities,
   });
   const semanticMetadata: SemanticMetadata = registry.toSemanticMetadata();
+
+  // Attach compact DDL of raw schema for ad-hoc metric support
+  if (semanticRow.raw_schema) {
+    const parsed = IntrospectedSchemaSchema.safeParse(semanticRow.raw_schema);
+    if (parsed.success) {
+      semanticMetadata.rawSchemaDDL = introspectedSchemaToDDL(parsed.data);
+    }
+  }
 
   // 3. Get pool and create execute function
   const poolManager = getPoolManager();

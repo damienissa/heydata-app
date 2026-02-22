@@ -152,4 +152,9 @@ export const mockSemanticMetadata: SemanticMetadata = {
     orders: ["transactions", "purchases"],
     customers: ["buyers", "users", "clients"],
   },
+  rawSchemaDDL: `orders(order_id uuid PK, customer_id uuid FK->customers.customer_id, total_amount numeric NOT NULL, order_date date NOT NULL, status text)
+customers(customer_id uuid PK, region text, segment text, email text, created_at timestamptz)
+order_items(item_id uuid PK, order_id uuid FK->orders.order_id, product_id uuid FK->products.product_id, quantity integer NOT NULL, unit_price numeric NOT NULL)
+products(product_id uuid PK, name text NOT NULL, category text, price numeric)
+sessions(session_id uuid PK, customer_id uuid FK->customers.customer_id, traffic_source text, duration_seconds integer, started_at timestamptz)`,
 };

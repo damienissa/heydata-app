@@ -122,11 +122,34 @@ const optionalComparisonMode = ComparisonModeSchema.optional()
   .nullable()
   .transform((v) => v ?? undefined);
 
+// ── Ad-Hoc Metric ────────────────────────────────────────────────
+
+export const AdHocMetricSchema = z.object({
+  /** Generated snake_case name for this metric (e.g., "avg_session_duration") */
+  name: z.string().min(1),
+  /** Human-readable label */
+  displayName: z.string().min(1),
+  /** SQL aggregate formula using table.column references (e.g., "AVG(sessions.duration_seconds)") */
+  formula: z.string().min(1),
+  /** Tables involved in this metric */
+  tables: z.array(z.string()).min(1),
+  /** Brief description of what this metric measures */
+  description: z.string().optional(),
+});
+
+export type AdHocMetric = z.infer<typeof AdHocMetricSchema>;
+
 // ── Intent Object ─────────────────────────────────────────────────
 
 export const IntentObjectSchema = z.object({
   queryType: QueryTypeSchema,
-  metrics: z.array(z.string()).min(1),
+  metrics: z.array(z.string()).default([]),
+  adHocMetrics: z
+    .array(AdHocMetricSchema)
+    .optional()
+    .nullable()
+    .transform((v) => v ?? [])
+    .default([]),
   dimensions: z
     .array(z.string())
     .optional()
@@ -182,7 +205,10 @@ export const IntentObjectSchema = z.object({
   clarificationNeeded: z.boolean().default(false),
   clarificationQuestion: z.string().optional().nullable().transform((v) => v ?? undefined),
   confidence: z.number().min(0).max(1).default(0.9),
-});
+}).refine(
+  (data) => data.metrics.length > 0 || data.adHocMetrics.length > 0,
+  { message: "At least one predefined metric or ad-hoc metric is required" },
+);
 
 export type IntentObject = z.infer<typeof IntentObjectSchema>;
 

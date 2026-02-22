@@ -36,6 +36,7 @@ describe("Orchestrator", () => {
   const mockIntentResponse: IntentObject = {
     queryType: "trend",
     metrics: ["revenue"],
+    adHocMetrics: [],
     dimensions: ["date"],
     filters: [],
     timeRange: { start: "2024-01-01", end: "2024-01-31" },
@@ -147,7 +148,8 @@ describe("Orchestrator", () => {
 
     const clarificationIntent: IntentObject = {
       queryType: "aggregation",
-      metrics: ["revenue"], // At least one metric required by schema
+      metrics: ["revenue"],
+      adHocMetrics: [],
       dimensions: [],
       filters: [],
       comparisonMode: "none",

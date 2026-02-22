@@ -61,6 +61,7 @@ export async function POST(req: Request) {
             intent: {
               queryType: "aggregation",
               metrics: ["_none"],
+              adHocMetrics: [],
               dimensions: [],
               filters: [],
               comparisonMode: "none",

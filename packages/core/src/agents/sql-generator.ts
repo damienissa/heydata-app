@@ -64,6 +64,7 @@ Respond with a JSON object containing:
 function buildSystemPrompt(
   semanticMetadata: SemanticMetadata,
   dialect: string,
+  hasAdHocMetrics: boolean,
 ): string {
   const currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
 
@@ -85,12 +86,25 @@ function buildSystemPrompt(
           .join("\n")
       : "No relationships defined";
 
-  return SYSTEM_PROMPT
+  let prompt = SYSTEM_PROMPT
     .replaceAll("{{CURRENT_DATE}}", currentDate!)
     .replaceAll("{{DIALECT}}", dialect)
     .replace("{{METRICS}}", metricsDesc)
     .replace("{{DIMENSIONS}}", dimensionsDesc)
     .replace("{{RELATIONSHIPS}}", relationshipsDesc);
+
+  if (hasAdHocMetrics && semanticMetadata.rawSchemaDDL) {
+    prompt += `
+
+RAW DATABASE SCHEMA (for ad-hoc metrics):
+${semanticMetadata.rawSchemaDDL}
+
+When the intent includes "adHocMetrics", use their formulas directly in the SQL.
+Determine appropriate JOINs based on the foreign key relationships in the raw schema.
+Apply the same best practices (CTEs for multi-table, GROUP BY, etc.) as for predefined metrics.`;
+  }
+
+  return prompt;
 }
 
 function buildUserMessage(
@@ -101,6 +115,13 @@ function buildUserMessage(
   let message = `Generate a SQL query for the following intent:
 
 ${JSON.stringify(intent, null, 2)}`;
+
+  if (intent.adHocMetrics && intent.adHocMetrics.length > 0) {
+    message += `\n\nAD-HOC METRIC FORMULAS TO USE:`;
+    for (const m of intent.adHocMetrics) {
+      message += `\n- ${m.name}: ${m.formula} (tables: ${m.tables.join(", ")})`;
+    }
+  }
 
   if (previousSql && validationErrors && validationErrors.length > 0) {
     message += `
@@ -128,7 +149,8 @@ export async function generateSql(
   const { context, intent, semanticMetadata, previousSql, validationErrors } = input;
 
   try {
-    const systemPrompt = buildSystemPrompt(semanticMetadata, context.dialect);
+    const hasAdHocMetrics = (intent.adHocMetrics?.length ?? 0) > 0;
+    const systemPrompt = buildSystemPrompt(semanticMetadata, context.dialect, hasAdHocMetrics);
     const userMessage = buildUserMessage(intent, previousSql, validationErrors);
 
     const response = await context.client.messages.create({

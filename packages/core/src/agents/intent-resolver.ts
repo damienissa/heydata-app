@@ -54,7 +54,7 @@ Guidelines:
 - For trend/graph queries, include a date dimension to group by and set appropriate grain
 - When filtering to a single entity (e.g., one username), select metrics whose formulas make sense for that entity's data (e.g., SUM, COUNT of their records), not metrics that count distinct entities (which would trivially be 1)
 
-Respond with JSON matching IntentObject schema. Required fields: queryType, metrics (array with at least one), dimensions (array), filters (array), isFollowUp (boolean), clarificationNeeded (boolean), confidence (0-1).
+Respond with JSON matching IntentObject schema. Required fields: queryType, metrics (array of predefined metric names) OR adHocMetrics (array of ad-hoc metric objects), dimensions (array), filters (array), isFollowUp (boolean), clarificationNeeded (boolean), confidence (0-1). At least one predefined metric or ad-hoc metric is required.
 `;
 
 function buildSystemPrompt(metadata: SemanticMetadata): string {
@@ -77,10 +77,28 @@ function buildSystemPrompt(metadata: SemanticMetadata): string {
     )
     .join("\n");
 
-  return SYSTEM_PROMPT
+  let prompt = SYSTEM_PROMPT
     .replaceAll("{{CURRENT_DATE}}", currentDate!)
     .replace("{{METRICS}}", metricsDesc)
     .replace("{{DIMENSIONS}}", dimensionsDesc);
+
+  if (metadata.rawSchemaDDL) {
+    prompt += `
+
+AD-HOC METRICS (when no predefined metric matches):
+If the user's question cannot be answered by any predefined metric above, you MAY define one or more ad-hoc metrics using the raw database schema below. Ad-hoc metrics must:
+- Use valid SQL aggregate formulas referencing table.column from the schema (e.g., "AVG(sessions.duration_seconds)")
+- Be placed in the "adHocMetrics" array with fields: name (snake_case), displayName, formula, tables (array of table names used), and optional description
+- NOT be placed in the "metrics" array (that is only for predefined metric names)
+- Result in a lower confidence score (0.3-0.6) since they bypass curated definitions
+
+ONLY use ad-hoc metrics when predefined metrics clearly do not fit. Always prefer predefined metrics.
+
+RAW DATABASE SCHEMA:
+${metadata.rawSchemaDDL}`;
+  }
+
+  return prompt;
 }
 
 function buildUserMessage(
@@ -142,6 +160,11 @@ export async function resolveIntent(
 
     const parsed = JSON.parse(jsonStr) as unknown;
     const validated = IntentObjectSchema.parse(parsed);
+
+    // Cap confidence when ad-hoc metrics are used (safety net if LLM ignores instruction)
+    if (validated.adHocMetrics.length > 0 && validated.confidence > 0.6) {
+      validated.confidence = 0.6;
+    }
 
     const { inputTokens, outputTokens } = extractTokenUsage(response);
 

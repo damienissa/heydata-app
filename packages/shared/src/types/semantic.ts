@@ -84,6 +84,8 @@ export const SemanticMetadataSchema = z.object({
   dimensions: z.array(DimensionDefinitionSchema),
   relationships: z.array(EntityRelationshipSchema),
   synonyms: SynonymMapSchema.optional(),
+  /** Compact DDL representation of the raw database schema for ad-hoc metric support */
+  rawSchemaDDL: z.string().optional(),
 });
 
 export type SemanticMetadata = z.infer<typeof SemanticMetadataSchema>;

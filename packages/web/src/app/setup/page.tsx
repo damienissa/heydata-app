@@ -59,6 +59,7 @@ export default function SetupPage() {
       setStep(2);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -169,6 +170,9 @@ export default function SetupPage() {
           {step === 1 && (
             <div>
               <h2 className="mb-4 text-lg font-medium">Connect to your database</h2>
+              {error && (
+                <p className="mb-4 text-sm text-destructive">{error}</p>
+              )}
               <ConnectionForm onSubmit={handleConnect} />
             </div>
           )}

@@ -6,19 +6,28 @@ import { Header } from "@/components/layout/Header";
 import { ChatProvider } from "@/contexts/chat-context";
 import { useConnections } from "@/hooks/use-connections";
 import { useSessions } from "@/hooks/use-sessions";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
   const [connectionId, setConnectionId] = useState<string | undefined>();
   const [sessionId, setSessionId] = useState<string | undefined>();
 
   const { connections, isLoading: connectionsLoading } = useConnections();
+
+  // Landing logic: no connections → /setup
+  useEffect(() => {
+    if (connectionsLoading) return;
+    if (connections.length === 0) {
+      router.replace("/setup");
+    }
+  }, [connectionsLoading, connections.length, router]);
   const {
     sessions,
     isLoading: sessionsLoading,
     createSession,
     deleteSession,
-    refetch,
   } = useSessions(connectionId ?? undefined);
 
   const handleNewChat = async () => {
@@ -46,6 +55,11 @@ export default function Home() {
     id: s.id,
     title: s.title,
   }));
+
+  // Show nothing while redirecting to setup (avoids flash of chat UI)
+  if (!connectionsLoading && connections.length === 0) {
+    return null;
+  }
 
   return (
     <ChatProvider sessionId={sessionId} connectionId={connectionId}>

@@ -258,10 +258,10 @@ Update all docs to define the target architecture for universal, database-agnost
 
 ## Phase 14 — Onboarding UI
 
-- [ ] Connection setup page: 4-step wizard (Connect → Introspect → Generate → Done)
-- [ ] Connection form, schema preview, semantic preview components
-- [ ] Connection switcher in sidebar
-- [ ] Landing logic: no connections → `/setup`, has connections → chat
+- [x] Connection setup page: 4-step wizard (Connect → Introspect → Generate → Done)
+- [x] Connection form, schema preview, semantic preview components
+- [x] Connection switcher in header (from Phase 13)
+- [x] Landing logic: no connections → `/setup`, has connections → chat
 
 ---
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Orchestrator } from "../orchestrator.js";
 import { mockSemanticMetadata } from "../mocks/semantic.mock.js";
-import type { ResultSet, IntentObject, GeneratedSQL, ValidationResult, InsightAnnotation, VisualizationSpec } from "@heydata/shared";
+import type { ResultSet, IntentObject, GeneratedSQL, InsightAnnotation, VisualizationSpec } from "@heydata/shared";
 
 // Mock the Anthropic SDK
 vi.mock("@anthropic-ai/sdk", () => {
@@ -53,12 +53,6 @@ describe("Orchestrator", () => {
     estimatedComplexity: "low",
   };
 
-  const mockValidationResponse: ValidationResult = {
-    valid: true,
-    issues: [],
-    confidence: 0.98,
-  };
-
   const mockInsightsResponse: { insights: InsightAnnotation[] } = {
     insights: [
       {
@@ -88,14 +82,15 @@ describe("Orchestrator", () => {
     const MockAnthropic = AnthropicModule.default as unknown as ReturnType<typeof vi.fn>;
 
     // Set up sequential responses for the pipeline
+    // Note: SQL validator LLM call is skipped for estimatedComplexity: "low" queries
+    // Note: Data analyzer and viz planner run in parallel (Promise.allSettled)
     let callCount = 0;
     const responses = [
-      JSON.stringify(mockIntentResponse), // Intent resolver
-      JSON.stringify(mockSqlResponse), // SQL generator
-      JSON.stringify(mockValidationResponse), // SQL validator
-      JSON.stringify(mockInsightsResponse), // Data analyzer
-      JSON.stringify(mockVizResponse), // Viz planner
-      mockNarrativeResponse, // Narrative
+      JSON.stringify(mockIntentResponse),   // [0] Intent resolver
+      JSON.stringify(mockSqlResponse),       // [1] SQL generator (low complexity → validator skipped)
+      JSON.stringify(mockInsightsResponse),  // [2] Data analyzer (parallel with viz planner)
+      JSON.stringify(mockVizResponse),       // [3] Viz planner (parallel with data analyzer)
+      mockNarrativeResponse,                 // [4] Narrative
     ];
 
     MockAnthropic.mockImplementation(() => ({

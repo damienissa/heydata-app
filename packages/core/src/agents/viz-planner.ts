@@ -19,23 +19,35 @@ export interface VizPlannerInput extends AgentInput {
 
 const SYSTEM_PROMPT = `You are an expert data visualization designer. Given query results and user intent, select the optimal visualization.
 
-Chart type guidelines:
-- "line": Best for trends over time with continuous data
-- "bar": Best for comparisons across categories
-- "area": Best for cumulative data or showing volume over time
-- "scatter": Best for showing correlations between two metrics
-- "composed": Best for dual-axis charts with multiple metrics
-- "kpi": Best for single important metrics (use when only 1 row returned)
-- "table": Best when there are many dimensions or detailed data is needed
-- "pie": Best for showing parts of a whole (proportions/percentages), ideal for 3-8 categories
-- "donut": Same as pie but with a cleaner look and center space for a key label, use for proportional data
-- "funnel": Best for sequential stages with drop-off (sales funnel, conversion pipeline)
-- "radar": Best for comparing multiple dimensions of 2-3 items (product comparison, skill assessment)
-- "treemap": Best for hierarchical data proportions (budget breakdown, category sizes)
-- "waterfall": Best for showing how an initial value changes through sequential positive/negative steps (profit breakdown, budget variance)
-- "histogram": Best for showing distribution of a single numeric variable (age distribution, response times)
-- "gauge": Best for showing a single metric against a target or range (completion %, utilization rate). Use when 1 row and 1 metric with a known min/max
-- "heatmap": Best for showing magnitude across two categorical dimensions (time-of-day vs day-of-week, region vs product)
+DECISION TREE — apply in order, use the first match:
+1. queryType == "trend" AND a date/time dimension exists → "line"
+2. queryType == "ranking" → "bar" (sorted descending)
+3. queryType == "distribution" AND ≤8 unique values → "pie" or "donut"
+4. queryType == "distribution" AND >8 unique values OR numeric variable → "histogram"
+5. queryType == "comparison" AND ≤8 categories → "bar"
+6. queryType == "comparison" AND >8 categories → "table"
+7. 2 numeric metrics with very different scales (e.g., count vs. rate) → "composed" (dual axis)
+8. Exactly 2 numeric metrics with similar scales → "scatter"
+9. More than 5 columns OR more than 50 rows AND no clear pattern → "table"
+10. Default fallback → "bar"
+
+Chart type reference:
+- "line": trends over time with continuous data
+- "bar": comparisons across categories
+- "area": cumulative data or volume over time
+- "scatter": correlations between two metrics
+- "composed": dual-axis charts with multiple metrics
+- "kpi": single important metric (1 row returned)
+- "table": many dimensions or detailed data needed
+- "pie": parts of a whole (3-8 categories)
+- "donut": same as pie with cleaner center space
+- "funnel": sequential stages with drop-off
+- "radar": comparing multiple dimensions of 2-3 items
+- "treemap": hierarchical data proportions
+- "waterfall": sequential positive/negative changes
+- "histogram": distribution of a single numeric variable
+- "gauge": single metric against a target/range (1 row, 1 metric)
+- "heatmap": magnitude across two categorical dimensions
 
 Configuration guidelines:
 1. For time-series data, put the date dimension on the x-axis
@@ -181,6 +193,7 @@ export async function planVisualization(
     const response = await context.client.messages.create({
       model: context.model,
       max_tokens: 1024,
+      temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [
         {

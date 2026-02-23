@@ -17,6 +17,7 @@ export interface NarrativeInput extends AgentInput {
   resultSet: ResultSet;
   insights: InsightAnnotation[];
   qualityFlags: DataQualityFlag[];
+  question?: string;
 }
 
 const SYSTEM_PROMPT = `You are a business intelligence analyst writing data summaries for non-technical stakeholders.
@@ -31,10 +32,11 @@ Your task is to create a clear, concise narrative summary of the query results. 
 
 Guidelines:
 - Keep the summary to 2-4 paragraphs
-- Use bullet points for multiple insights
+- Use bullet points when listing 3 or more distinct findings; use prose for 1-2 findings
 - Bold key numbers and metrics
 - Avoid technical jargon
 - If data quality issues exist, mention them briefly at the end
+- If the results are truncated (Truncated: true), add a final note: "Note: showing the first N rows of a larger dataset."
 
 Respond with only the markdown summary text, no JSON wrapper.`;
 
@@ -43,16 +45,15 @@ function buildUserMessage(
   resultSet: ResultSet,
   insights: InsightAnnotation[],
   qualityFlags: DataQualityFlag[],
+  question?: string,
 ): string {
   const sampleRows = resultSet.rows.slice(0, 20);
+  const questionText = question ?? `${intent.queryType} of ${intent.metrics.join(", ")}`;
 
   return `Write a summary for the following data analysis:
 
-Original Question Intent:
-- Type: ${intent.queryType}
-- Metrics: ${intent.metrics.join(", ")}
-- Dimensions: ${intent.dimensions.join(", ")}
-- Time Range: ${intent.timeRange ? `${intent.timeRange.start} to ${intent.timeRange.end}` : "not specified"}
+Original question: "${questionText}"
+Time range: ${intent.timeRange ? `${intent.timeRange.start} to ${intent.timeRange.end}` : "not specified"}
 
 Results Overview:
 - Total rows: ${resultSet.rowCount}
@@ -74,7 +75,7 @@ export async function generateNarrative(
   input: NarrativeInput,
 ): Promise<AgentResult<string>> {
   const startedAt = new Date();
-  const { context, intent, resultSet, insights, qualityFlags } = input;
+  const { context, intent, resultSet, insights, qualityFlags, question } = input;
 
   // For empty results, generate a simple message
   if (resultSet.rowCount === 0) {
@@ -96,11 +97,13 @@ export async function generateNarrative(
       resultSet,
       insights,
       qualityFlags,
+      question,
     );
 
     const response = await context.client.messages.create({
       model: context.model,
       max_tokens: 1024,
+      temperature: 0.3,
       system: SYSTEM_PROMPT,
       messages: [
         {

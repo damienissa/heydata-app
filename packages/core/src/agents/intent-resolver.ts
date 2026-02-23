@@ -53,12 +53,42 @@ Guidelines:
 - CRITICAL: Convert relative time expressions to ABSOLUTE dates using today ({{CURRENT_DATE}}). Example: "last 2 months" with today=2026-02-21 → timeRange: {"start": "2025-12-21", "end": "2026-02-21"}
 - For trend/graph queries, include a date dimension to group by and set appropriate grain
 - When filtering to a single entity (e.g., one username), select metrics whose formulas make sense for that entity's data (e.g., SUM, COUNT of their records), not metrics that count distinct entities (which would trivially be 1)
+- If the question has no clear metric match (e.g. "how is my business doing?"), set clarificationNeeded: true and list the top 3 most relevant metrics in clarificationQuestion
 
-Respond with JSON matching IntentObject schema. Required fields: queryType, metrics (array of predefined metric names) OR adHocMetrics (array of ad-hoc metric objects), dimensions (array), filters (array), isFollowUp (boolean), clarificationNeeded (boolean), confidence (0-1). At least one predefined metric or ad-hoc metric is required.
+OUTPUT FORMAT — return exactly this JSON structure (no markdown wrapper):
+{
+  "queryType": "trend" | "comparison" | "ranking" | "anomaly" | "drill_down" | "aggregation" | "distribution" | "correlation",
+  "metrics": ["predefined_metric_name"],
+  "adHocMetrics": [],
+  "dimensions": ["dimension_name"],
+  "filters": [{"dimension": "dim_name", "operator": "eq" | "neq" | "gt" | "lt" | "gte" | "lte" | "in" | "not_in" | "contains", "value": "literal"}],
+  "timeRange": {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD", "grain": "daily" | "weekly" | "monthly" | "yearly" | null} | null,
+  "comparisonMode": "none" | "period_over_period" | "year_over_year" | "month_over_month",
+  "sortBy": "column_name" | null,
+  "sortOrder": "asc" | "desc" | null,
+  "limit": number | null,
+  "isFollowUp": boolean,
+  "clarificationNeeded": boolean,
+  "clarificationQuestion": "string" | null,
+  "confidence": 0.0-1.0
+}
+
+EXAMPLE:
+Question: "Show me total clicks by day for last week"
+Output: {"queryType":"trend","metrics":["total_clicks"],"adHocMetrics":[],"dimensions":["click_date"],"filters":[],"timeRange":{"start":"{{LAST_WEEK_START}}","end":"{{LAST_WEEK_END}}","grain":"daily"},"comparisonMode":"none","sortBy":"click_date","sortOrder":"asc","limit":null,"isFollowUp":false,"clarificationNeeded":false,"clarificationQuestion":null,"confidence":0.95}
 `;
 
 function buildSystemPrompt(metadata: SemanticMetadata): string {
   const currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+  // Compute example dates for the few-shot (last week Mon–Sun)
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0=Sun
+  const lastMonday = new Date(today);
+  lastMonday.setDate(today.getDate() - (dayOfWeek === 0 ? 13 : dayOfWeek + 6));
+  const lastSunday = new Date(lastMonday);
+  lastSunday.setDate(lastMonday.getDate() + 6);
+  const lastWeekStart = lastMonday.toISOString().split("T")[0]!;
+  const lastWeekEnd = lastSunday.toISOString().split("T")[0]!;
 
   const metricsDesc = metadata.metrics
     .map(
@@ -79,6 +109,8 @@ function buildSystemPrompt(metadata: SemanticMetadata): string {
 
   let prompt = SYSTEM_PROMPT
     .replaceAll("{{CURRENT_DATE}}", currentDate!)
+    .replace("{{LAST_WEEK_START}}", lastWeekStart)
+    .replace("{{LAST_WEEK_END}}", lastWeekEnd)
     .replace("{{METRICS}}", metricsDesc)
     .replace("{{DIMENSIONS}}", dimensionsDesc);
 
@@ -114,10 +146,10 @@ function buildUserMessage(
     .map((turn) => `${turn.role.toUpperCase()}: ${turn.content}`)
     .join("\n");
 
-  return `Previous conversation:
+  return `RECENT CONVERSATION CONTEXT (for reference only):
 ${conversationContext}
 
-Current question: ${question}`;
+NEW QUESTION TO RESOLVE: ${question}`;
 }
 
 export async function resolveIntent(
@@ -133,6 +165,7 @@ export async function resolveIntent(
     const response = await context.client.messages.create({
       model: context.model,
       max_tokens: 1024,
+      temperature: 0,
       system: systemPrompt,
       messages: [
         {

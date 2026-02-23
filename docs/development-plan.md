@@ -295,3 +295,18 @@ Update all docs to define the target architecture for universal, database-agnost
 - [ ] Playwright E2E: connection setup wizard
 - [ ] Playwright E2E: submit query → see chart rendered
 - [ ] Playwright E2E: chat history persistence
+
+---
+
+## Phase 17 — Agent Audit & Improvements
+
+- [x] Parallelize Data Analyzer + Viz Planner (steps 6+7) with `Promise.allSettled` — saves 2–5s/request
+- [x] Add `temperature: 0` to all structured-output agents (narrative uses 0.3)
+- [x] Anthropic prompt caching on SQL generator semantic block (`cache_control: ephemeral`)
+- [x] Intent resolver: inline JSON schema, few-shot example, clearer follow-up labels, general-question guidance
+- [x] SQL generator: strip irrelevant intent fields from user message; add NULL/COALESCE, alias, and default time-range guidelines
+- [x] SQL validator: add schema context, intent-mismatch examples, low-complexity LLM skip for simple queries
+- [x] Data analyzer: thread original question, compact column stats format, max-5-insights limit, significance thresholds
+- [x] Narrative: thread original question, truncation note guidance, bullet-vs-prose rule
+- [x] Viz planner: replace spec dump with ordered decision tree (10-step priority logic)
+- [x] Graceful degradation: analyzer/viz-planner failures return fallback values instead of crashing pipeline

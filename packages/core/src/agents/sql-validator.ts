@@ -3,6 +3,7 @@ import {
   ValidationResultSchema,
   type GeneratedSQL,
   type IntentObject,
+  type SemanticMetadata,
   type SqlValidationIssue,
   type ValidationResult,
 } from "@heydata/shared";
@@ -16,6 +17,7 @@ import {
 export interface SqlValidatorInput extends AgentInput {
   generatedSql: GeneratedSQL;
   intent: IntentObject;
+  semanticMetadata?: SemanticMetadata;
 }
 
 // Forbidden SQL keywords for security
@@ -41,15 +43,20 @@ const FORBIDDEN_KEYWORDS = [
 const SYSTEM_PROMPT = `You are an expert SQL validator. Analyze the given SQL query for potential issues.
 
 Check for:
-1. Syntax errors
-2. Semantic issues (table/column mismatches)
-3. Performance concerns (missing indexes, cartesian products, unnecessary subqueries)
+1. Syntax errors (invalid SQL syntax for the target dialect)
+2. Semantic issues — ONLY flag table/column mismatches if you have schema context below; otherwise skip this check
+3. Performance concerns (cartesian products, missing GROUP BY, unnecessary full scans)
 4. Security issues (SQL injection vulnerabilities, unsafe patterns)
-5. Intent mismatch (does the query actually answer the user's question?)
+5. Intent mismatch — the query structure is fundamentally wrong for the question type:
+   - ERROR: User asked for a trend over time but query has no date column in GROUP BY
+   - ERROR: User asked for top N but query has no ORDER BY + LIMIT
+   - OK: Extra SELECT columns beyond what was requested — not an error
+   - OK: Minor differences in filter values or column ordering — not an error
+   - OK: CTEs and subqueries added for correctness — not an error
 
 For each issue found, specify:
 - type: "syntax", "semantic", "performance", "security", or "intent_mismatch"
-- severity: "error", "warning", or "info"
+- severity: "error" (must fix), "warning" (should fix), or "info" (nice to have)
 - message: Description of the issue
 - suggestion: How to fix it
 - line: Line number if applicable
@@ -115,7 +122,24 @@ function performStaticChecks(sql: string): SqlValidationIssue[] {
 function buildUserMessage(
   generatedSql: GeneratedSQL,
   intent: IntentObject,
+  semanticMetadata?: SemanticMetadata,
 ): string {
+  // Compact schema context: table names + column names only (not full DDL)
+  let schemaContext = "";
+  if (semanticMetadata) {
+    const tables = new Set<string>();
+    for (const d of semanticMetadata.dimensions) tables.add(d.table);
+    for (const r of semanticMetadata.relationships) {
+      tables.add(r.from.table);
+      tables.add(r.to.table);
+    }
+    const tableList = [...tables].join(", ");
+    const dimColumns = semanticMetadata.dimensions
+      .map((d) => `${d.table}.${d.column}`)
+      .join(", ");
+    schemaContext = `\n\nKnown tables: ${tableList}\nKnown columns: ${dimColumns}`;
+  }
+
   return `Validate the following SQL query:
 
 SQL:
@@ -127,8 +151,7 @@ Target dialect: ${generatedSql.dialect}
 Tables touched: ${generatedSql.tablesTouched.join(", ")}
 Estimated complexity: ${generatedSql.estimatedComplexity ?? "unknown"}
 
-Original intent:
-${JSON.stringify(intent, null, 2)}
+Original intent (queryType: ${intent.queryType}, metrics: ${intent.metrics.join(", ")}, dimensions: ${intent.dimensions.join(", ")})${schemaContext}
 
 Validate that the SQL correctly implements the intent and check for any issues.`;
 }
@@ -137,7 +160,7 @@ export async function validateSql(
   input: SqlValidatorInput,
 ): Promise<AgentResult<ValidationResult>> {
   const startedAt = new Date();
-  const { context, generatedSql, intent } = input;
+  const { context, generatedSql, intent, semanticMetadata } = input;
 
   // First, perform static checks
   const staticIssues = performStaticChecks(generatedSql.sql);
@@ -163,12 +186,32 @@ export async function validateSql(
     };
   }
 
+  // For low-complexity queries with no static errors, skip the LLM call
+  const hasStaticErrors = staticIssues.some((i) => i.severity === "error");
+  if (generatedSql.estimatedComplexity === "low" && !hasStaticErrors) {
+    return {
+      data: {
+        valid: true,
+        issues: staticIssues,
+        confidence: 0.85,
+      },
+      trace: createSuccessTrace({
+        agent: "sql_validator",
+        model: context.model,
+        startedAt,
+        inputTokens: 0,
+        outputTokens: 0,
+      }),
+    };
+  }
+
   try {
-    const userMessage = buildUserMessage(generatedSql, intent);
+    const userMessage = buildUserMessage(generatedSql, intent, semanticMetadata);
 
     const response = await context.client.messages.create({
       model: context.model,
       max_tokens: 1024,
+      temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [
         {

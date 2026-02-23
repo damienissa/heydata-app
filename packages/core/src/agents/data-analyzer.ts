@@ -18,6 +18,7 @@ export interface DataAnalyzerInput extends AgentInput {
   resultSet: ResultSet;
   columnStats: ColumnStats[];
   intent: IntentObject;
+  question?: string;
 }
 
 const InsightsResponseSchema = z.object({
@@ -40,7 +41,15 @@ Focus on:
 4. Making comparisons when multiple series exist
 5. Summarizing key statistics
 
-Be concise and data-driven. Only report insights that are meaningful and actionable.
+Significance thresholds:
+- "high": changes >20%, values >2 standard deviations from mean, or clear anomalies
+- "medium": notable patterns worth mentioning
+- "low": minor observations
+
+Rules:
+- Generate a MAXIMUM of 5 insights, prioritizing the highest-significance ones
+- Only report insights that are meaningful and actionable — skip trivial observations
+- Be concise and data-driven
 
 Respond with a JSON object containing an "insights" array.`;
 
@@ -48,19 +57,31 @@ function buildUserMessage(
   resultSet: ResultSet,
   columnStats: ColumnStats[],
   intent: IntentObject,
+  question?: string,
 ): string {
   // Limit the data sample to avoid token limits
   const sampleRows = resultSet.rows.slice(0, 50);
 
+  // Compact column stats: one line per column instead of full JSON
+  const compactStats = columnStats
+    .map((s) => {
+      const parts = [`nulls=${s.nullCount}`, `distinct=${s.distinctCount}`];
+      if (s.min !== null && s.min !== undefined) parts.push(`min=${s.min}`);
+      if (s.max !== null && s.max !== undefined) parts.push(`max=${s.max}`);
+      if (s.mean !== null && s.mean !== undefined) parts.push(`mean=${Number(s.mean).toFixed(2)}`);
+      return `${s.column}: ${parts.join(", ")}`;
+    })
+    .join("\n");
+
   return `Analyze the following query results:
 
-Query Intent:
-- Type: ${intent.queryType}
-- Metrics: ${intent.metrics.join(", ")}
-- Dimensions: ${intent.dimensions.join(", ")}
+Original question: "${question ?? `${intent.queryType} of ${intent.metrics.join(", ")}`}"
+Query type: ${intent.queryType}
+Metrics: ${intent.metrics.join(", ")}
+Dimensions: ${intent.dimensions.join(", ")}
 
 Column Statistics:
-${JSON.stringify(columnStats, null, 2)}
+${compactStats}
 
 Data Sample (first ${sampleRows.length} of ${resultSet.rowCount} rows):
 ${JSON.stringify(sampleRows, null, 2)}
@@ -75,7 +96,7 @@ export async function analyzeData(
   input: DataAnalyzerInput,
 ): Promise<AgentResult<InsightAnnotation[]>> {
   const startedAt = new Date();
-  const { context, resultSet, columnStats, intent } = input;
+  const { context, resultSet, columnStats, intent, question } = input;
 
   // For empty results, return basic insight
   if (resultSet.rowCount === 0) {
@@ -98,11 +119,12 @@ export async function analyzeData(
   }
 
   try {
-    const userMessage = buildUserMessage(resultSet, columnStats, intent);
+    const userMessage = buildUserMessage(resultSet, columnStats, intent, question);
 
     const response = await context.client.messages.create({
       model: context.model,
       max_tokens: 2048,
+      temperature: 0,
       system: SYSTEM_PROMPT,
       messages: [
         {

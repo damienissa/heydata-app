@@ -21,21 +21,10 @@ export interface SqlGeneratorInput extends AgentInput {
   validationErrors?: string[];
 }
 
-const SYSTEM_PROMPT = `You are an expert SQL query generator. Given a structured intent object and semantic layer metadata, generate a valid SQL query.
+const PREAMBLE_PROMPT = `You are an expert SQL query generator. Given a structured intent object and semantic layer metadata, generate a valid SQL query.
 
 TODAY'S DATE: {{CURRENT_DATE}}
 Target dialect: {{DIALECT}}
-
-Semantic Layer Information:
-
-METRICS (with formulas):
-{{METRICS}}
-
-DIMENSIONS (with table/column mappings):
-{{DIMENSIONS}}
-
-RELATIONSHIPS:
-{{RELATIONSHIPS}}
 
 Guidelines:
 1. Use literal values in SQL (do NOT use parameterized placeholders like $1, $2)
@@ -44,7 +33,7 @@ Guidelines:
 4. Apply filters using WHERE clauses with literal values (e.g., WHERE status = 'active')
 5. Group by all dimension columns when aggregating
 6. Apply ORDER BY and LIMIT as specified in the intent
-7. CRITICAL: For time ranges in the intent, generate WHERE clauses with proper date comparisons. Use the timeRange.start and timeRange.end from the intent. If no timeRange is provided but the query is time-based, default to a reasonable recent period relative to today ({{CURRENT_DATE}}).
+7. CRITICAL: For time ranges in the intent, generate WHERE clauses with proper date comparisons. Use the timeRange.start and timeRange.end from the intent. If no timeRange is provided but the query is time-based, default to the last 30 days relative to today ({{CURRENT_DATE}}).
 8. For trend queries with time dimensions, ensure results are aggregated by the time dimension (GROUP BY the date column) and ordered chronologically (ORDER BY date ASC)
 9. Estimate query complexity (low, medium, high) based on number of joins and aggregations
 10. Properly escape string literals (use single quotes for strings)
@@ -54,6 +43,9 @@ Guidelines:
          clicks_metrics AS (SELECT user_id, COUNT(*) as total_clicks FROM click_logs WHERE ... GROUP BY user_id)
     SELECT COALESCE(l.total_links, 0), COALESCE(c.total_clicks, 0) FROM links_metrics l FULL JOIN clicks_metrics c USING (user_id)
 12. When filtering to a single entity (e.g., one username), avoid COUNT(DISTINCT entity_id) metrics as they would trivially return 1. Instead, focus on activity metrics (counts, sums of that entity's data).
+13. NULL handling: wrap aggregated columns in COALESCE(expression, 0) whenever a FULL JOIN may produce NULLs (e.g., COALESCE(SUM(orders.amount), 0) AS total_revenue).
+14. Column aliases: always alias computed columns with readable snake_case names matching the metric displayName (e.g., SUM(orders.total) AS total_revenue).
+15. Default time range: if no timeRange is provided for a time-based query, default to the last 30 days relative to today ({{CURRENT_DATE}}).
 
 Respond with a JSON object containing:
 - sql: The SQL query string
@@ -61,13 +53,29 @@ Respond with a JSON object containing:
 - tablesTouched: Array of table names used
 - estimatedComplexity: "low", "medium", or "high"`;
 
-function buildSystemPrompt(
+const SEMANTIC_BLOCK_TEMPLATE = `Semantic Layer Information:
+
+METRICS (with formulas):
+{{METRICS}}
+
+DIMENSIONS (with table/column mappings):
+{{DIMENSIONS}}
+
+RELATIONSHIPS:
+{{RELATIONSHIPS}}
+{{AD_HOC_SCHEMA}}`;
+
+function buildPreamble(dialect: string): string {
+  const currentDate = new Date().toISOString().split("T")[0];
+  return PREAMBLE_PROMPT
+    .replaceAll("{{CURRENT_DATE}}", currentDate!)
+    .replaceAll("{{DIALECT}}", dialect);
+}
+
+function buildSemanticBlock(
   semanticMetadata: SemanticMetadata,
-  dialect: string,
   hasAdHocMetrics: boolean,
 ): string {
-  const currentDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
-
   const metricsDesc = semanticMetadata.metrics
     .map((m) => `- ${m.name}: ${m.formula}${m.grain ? ` (grain: ${m.grain})` : ""}${m.dimensions.length > 0 ? ` [dimensions: ${m.dimensions.join(", ")}]` : ""}`)
     .join("\n");
@@ -86,25 +94,15 @@ function buildSystemPrompt(
           .join("\n")
       : "No relationships defined";
 
-  let prompt = SYSTEM_PROMPT
-    .replaceAll("{{CURRENT_DATE}}", currentDate!)
-    .replaceAll("{{DIALECT}}", dialect)
+  const adHocSchema = hasAdHocMetrics && semanticMetadata.rawSchemaDDL
+    ? `\n\nRAW DATABASE SCHEMA (for ad-hoc metrics):\n${semanticMetadata.rawSchemaDDL}\n\nWhen the intent includes "adHocMetrics", use their formulas directly in the SQL.\nDetermine appropriate JOINs based on the foreign key relationships in the raw schema.\nApply the same best practices (CTEs for multi-table, GROUP BY, etc.) as for predefined metrics.`
+    : "";
+
+  return SEMANTIC_BLOCK_TEMPLATE
     .replace("{{METRICS}}", metricsDesc)
     .replace("{{DIMENSIONS}}", dimensionsDesc)
-    .replace("{{RELATIONSHIPS}}", relationshipsDesc);
-
-  if (hasAdHocMetrics && semanticMetadata.rawSchemaDDL) {
-    prompt += `
-
-RAW DATABASE SCHEMA (for ad-hoc metrics):
-${semanticMetadata.rawSchemaDDL}
-
-When the intent includes "adHocMetrics", use their formulas directly in the SQL.
-Determine appropriate JOINs based on the foreign key relationships in the raw schema.
-Apply the same best practices (CTEs for multi-table, GROUP BY, etc.) as for predefined metrics.`;
-  }
-
-  return prompt;
+    .replace("{{RELATIONSHIPS}}", relationshipsDesc)
+    .replace("{{AD_HOC_SCHEMA}}", adHocSchema);
 }
 
 function buildUserMessage(
@@ -112,9 +110,23 @@ function buildUserMessage(
   previousSql?: string,
   validationErrors?: string[],
 ): string {
+  // Only pass SQL-relevant fields — strip intent resolution metadata
+  const sqlIntent = {
+    queryType: intent.queryType,
+    metrics: intent.metrics,
+    adHocMetrics: intent.adHocMetrics,
+    dimensions: intent.dimensions,
+    filters: intent.filters,
+    timeRange: intent.timeRange,
+    comparisonMode: intent.comparisonMode,
+    sortBy: intent.sortBy,
+    sortOrder: intent.sortOrder,
+    limit: intent.limit,
+  };
+
   let message = `Generate a SQL query for the following intent:
 
-${JSON.stringify(intent, null, 2)}`;
+${JSON.stringify(sqlIntent, null, 2)}`;
 
   if (intent.adHocMetrics && intent.adHocMetrics.length > 0) {
     message += `\n\nAD-HOC METRIC FORMULAS TO USE:`;
@@ -150,13 +162,18 @@ export async function generateSql(
 
   try {
     const hasAdHocMetrics = (intent.adHocMetrics?.length ?? 0) > 0;
-    const systemPrompt = buildSystemPrompt(semanticMetadata, context.dialect, hasAdHocMetrics);
+    const preamble = buildPreamble(context.dialect);
+    const semanticBlock = buildSemanticBlock(semanticMetadata, hasAdHocMetrics);
     const userMessage = buildUserMessage(intent, previousSql, validationErrors);
 
     const response = await context.client.messages.create({
       model: context.model,
       max_tokens: 2048,
-      system: systemPrompt,
+      temperature: 0,
+      system: [
+        { type: "text", text: preamble },
+        { type: "text", text: semanticBlock, cache_control: { type: "ephemeral" } },
+      ],
       messages: [
         {
           role: "user",
@@ -164,6 +181,13 @@ export async function generateSql(
         },
       ],
     });
+
+    // Log cache usage when available
+    const usage = response.usage as unknown as Record<string, number>;
+    const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
+    if (cacheReadTokens > 0) {
+      console.log(`[SQL Generator] Cache hit: ${cacheReadTokens} tokens read from cache`);
+    }
 
     const textContent = response.content.find((c) => c.type === "text");
     if (!textContent || textContent.type !== "text") {

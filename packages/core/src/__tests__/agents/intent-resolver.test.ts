@@ -96,7 +96,7 @@ describe("Intent Resolver Agent", () => {
 
     // Verify the user message includes conversation context
     const callArgs = createSpy.mock.calls[0]?.[0] as { messages: Array<{ content: string }> };
-    expect(callArgs.messages[0]?.content).toContain("Previous conversation");
+    expect(callArgs.messages[0]?.content).toContain("RECENT CONVERSATION CONTEXT");
     expect(callArgs.messages[0]?.content).toContain("Show me revenue");
   });
 

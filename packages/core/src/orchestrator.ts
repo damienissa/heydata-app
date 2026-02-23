@@ -3,11 +3,13 @@ import {
   HeyDataError,
   type AgentTrace,
   type EnrichedResultSet,
+  type InsightAnnotation,
   type OrchestratorResponse,
   type OrchestratorTrace,
   type ResultSet,
   type SemanticMetadata,
   type SessionContext,
+  type VisualizationSpec,
   type WarehouseDialect,
 } from "@heydata/shared";
 import {
@@ -252,32 +254,72 @@ export class Orchestrator {
       }
       console.log("[Step 5] Column Stats:", dataValidationResult.data.columnStats.map(s => `${s.column}: nulls=${s.nullCount}, distinct=${s.distinctCount}`).join("; "));
 
-      // Step 6: Analyze data
+      // Steps 6+7: Analyze data and plan visualization (parallel — no dependency between them)
       console.log("\n" + "-".repeat(60));
-      console.log("[Step 6] DATA ANALYSIS - Starting...");
-      const analysisResult = await analyzeData({
-        context,
-        resultSet,
-        columnStats: dataValidationResult.data.columnStats,
-        intent: intentResult.data,
-      });
-      agentTraces.push(analysisResult.trace);
-      console.log("[Step 6] DATA ANALYSIS - Complete");
+      console.log("[Step 6+7 parallel] DATA ANALYSIS + VISUALIZATION PLANNING - Starting...");
+      const [analysisSettled, vizSettled] = await Promise.allSettled([
+        analyzeData({
+          context,
+          resultSet,
+          columnStats: dataValidationResult.data.columnStats,
+          intent: intentResult.data,
+          question: input.question,
+        }),
+        planVisualization({
+          context,
+          intent: intentResult.data,
+          resultSet,
+        }),
+      ]);
+
+      const analysisResult: { data: InsightAnnotation[]; trace: AgentTrace } =
+        analysisSettled.status === "fulfilled"
+          ? analysisSettled.value
+          : (() => {
+              console.error("[Step 6] DATA ANALYSIS - FAILED:", analysisSettled.reason);
+              return {
+                data: [] as InsightAnnotation[],
+                trace: {
+                  agent: "data_analyzer" as const,
+                  startedAt: new Date().toISOString(),
+                  completedAt: new Date().toISOString(),
+                  durationMs: 0,
+                  inputTokens: 0,
+                  outputTokens: 0,
+                  model: context.model,
+                  success: false,
+                  error: String(analysisSettled.reason),
+                },
+              };
+            })();
+
+      const vizResult: { data: VisualizationSpec; trace: AgentTrace } =
+        vizSettled.status === "fulfilled"
+          ? vizSettled.value
+          : (() => {
+              console.error("[Step 7] VISUALIZATION PLANNING - FAILED:", vizSettled.reason);
+              return {
+                data: { chartType: "table" as const, series: [] } satisfies VisualizationSpec,
+                trace: {
+                  agent: "viz_planner" as const,
+                  startedAt: new Date().toISOString(),
+                  completedAt: new Date().toISOString(),
+                  durationMs: 0,
+                  inputTokens: 0,
+                  outputTokens: 0,
+                  model: context.model,
+                  success: false,
+                  error: String(vizSettled.reason),
+                },
+              };
+            })();
+
+      agentTraces.push(analysisResult.trace, vizResult.trace);
+      console.log("[Step 6+7 parallel] DATA ANALYSIS + VISUALIZATION PLANNING - Complete");
       console.log("[Step 6] Insights Found:", analysisResult.data.length);
       if (analysisResult.data.length > 0) {
         console.log("[Step 6] Insights:", JSON.stringify(analysisResult.data.slice(0, 3), null, 2));
       }
-
-      // Step 7: Plan visualization
-      console.log("\n" + "-".repeat(60));
-      console.log("[Step 7] VISUALIZATION PLANNING - Starting...");
-      const vizResult = await planVisualization({
-        context,
-        intent: intentResult.data,
-        resultSet,
-      });
-      agentTraces.push(vizResult.trace);
-      console.log("[Step 7] VISUALIZATION PLANNING - Complete");
       console.log("[Step 7] Chart Type:", vizResult.data.chartType);
       console.log("[Step 7] Title:", vizResult.data.title);
       console.log("[Step 7] Series Count:", vizResult.data.series?.length ?? 0);
@@ -291,6 +333,7 @@ export class Orchestrator {
         resultSet,
         insights: analysisResult.data,
         qualityFlags: dataValidationResult.data.qualityFlags,
+        question: input.question,
       });
       agentTraces.push(narrativeResult.trace);
       console.log("[Step 8] NARRATIVE GENERATION - Complete");
@@ -405,6 +448,7 @@ export class Orchestrator {
         context,
         generatedSql: sqlResult.data,
         intent,
+        semanticMetadata,
       });
       console.log("[Step 3] SQL VALIDATOR - Complete");
       console.log("[Step 3] Valid:", validationResult.data.valid);

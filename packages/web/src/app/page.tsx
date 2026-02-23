@@ -27,12 +27,27 @@ export default function Home() {
       router.replace("/setup");
     }
   }, [connectionsLoading, connections.length, router]);
+
+  // Auto-select first connection when connections load
+  useEffect(() => {
+    if (!connectionsLoading && connections.length > 0 && !connectionId) {
+      setConnectionId(connections[0]!.id);
+    }
+  }, [connections, connectionsLoading, connectionId]);
+
   const {
     sessions,
     isLoading: sessionsLoading,
     createSession,
     deleteSession,
   } = useSessions(connectionId ?? undefined);
+
+  // Auto-select most recent session when sessions load
+  useEffect(() => {
+    if (!sessionsLoading && sessions.length > 0 && !sessionId && connectionId) {
+      setSessionId(sessions[0]!.id);
+    }
+  }, [sessions, sessionsLoading, sessionId, connectionId]);
 
   const handleNewChat = async () => {
     const session = await createSession({

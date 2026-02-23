@@ -2,8 +2,16 @@
 export { AreaChart } from "./charts/AreaChart.js";
 export { BarChart } from "./charts/BarChart.js";
 export { ComposedChart } from "./charts/ComposedChart.js";
+export { FunnelChart } from "./charts/FunnelChart.js";
+export { GaugeChart } from "./charts/GaugeChart.js";
+export { HeatmapChart } from "./charts/HeatmapChart.js";
+export { HistogramChart } from "./charts/HistogramChart.js";
 export { LineChart } from "./charts/LineChart.js";
+export { PieDonutChart } from "./charts/PieDonutChart.js";
+export { RadarChart } from "./charts/RadarChart.js";
 export { ScatterChart } from "./charts/ScatterChart.js";
+export { TreemapChart } from "./charts/TreemapChart.js";
+export { WaterfallChart } from "./charts/WaterfallChart.js";
 
 // Components
 export { DataTable, type DataTableProps } from "./components/DataTable.js";
@@ -20,3 +28,4 @@ export {
   getSeriesColor,
   type ChartProps,
 } from "./types.js";
+export { interpolateColor } from "./utils/color-scales.js";

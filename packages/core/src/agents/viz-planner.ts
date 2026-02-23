@@ -27,6 +27,15 @@ Chart type guidelines:
 - "composed": Best for dual-axis charts with multiple metrics
 - "kpi": Best for single important metrics (use when only 1 row returned)
 - "table": Best when there are many dimensions or detailed data is needed
+- "pie": Best for showing parts of a whole (proportions/percentages), ideal for 3-8 categories
+- "donut": Same as pie but with a cleaner look and center space for a key label, use for proportional data
+- "funnel": Best for sequential stages with drop-off (sales funnel, conversion pipeline)
+- "radar": Best for comparing multiple dimensions of 2-3 items (product comparison, skill assessment)
+- "treemap": Best for hierarchical data proportions (budget breakdown, category sizes)
+- "waterfall": Best for showing how an initial value changes through sequential positive/negative steps (profit breakdown, budget variance)
+- "histogram": Best for showing distribution of a single numeric variable (age distribution, response times)
+- "gauge": Best for showing a single metric against a target or range (completion %, utilization rate). Use when 1 row and 1 metric with a known min/max
+- "heatmap": Best for showing magnitude across two categorical dimensions (time-of-day vs day-of-week, region vs product)
 
 Configuration guidelines:
 1. For time-series data, put the date dimension on the x-axis
@@ -34,10 +43,17 @@ Configuration guidelines:
 3. For multiple metrics, use different colors or a composed chart with dual axes
 4. Enable legend when multiple series exist
 5. Consider stacking for related categories
+6. For pie/donut charts, set chartConfig.nameKey to the category dimension and chartConfig.valueKey to the metric
+7. For radar charts, set chartConfig.angleKey to the dimension and use series[] for each compared item
+8. For waterfall charts, ensure data rows represent sequential changes; set chartConfig.totalLabel if a summary row exists
+9. For histogram, set chartConfig.valueKey to the numeric column; the component will auto-bin the data
+10. For gauge, use when result has 1 row and 1 metric; set chartConfig.min/max/target as appropriate
+11. For heatmap, requires two categorical dimensions and one numeric measure
+12. For treemap, set chartConfig.nameKey to the label and chartConfig.sizeKey to the numeric value
 
 Respond with a JSON object matching the VisualizationSpec schema:
 {
-  "chartType": "line" | "bar" | "area" | "scatter" | "composed" | "kpi" | "table",
+  "chartType": "line" | "bar" | "area" | "scatter" | "composed" | "kpi" | "table" | "pie" | "donut" | "funnel" | "radar" | "treemap" | "waterfall" | "histogram" | "gauge" | "heatmap",
   "title": "Optional chart title",
   "xAxis": {
     "dataKey": "column name",
@@ -60,7 +76,7 @@ Respond with a JSON object matching the VisualizationSpec schema:
       "dataKey": "column name",
       "name": "Display name",
       "color": "hex color (optional)",
-      "type": "line" | "bar" | "area" (optional),
+      "type": "line" | "bar" | "area" (optional, for composed charts),
       "yAxisId": "left" | "right" (optional),
       "stackId": "stack group id (optional)"
     }
@@ -72,7 +88,18 @@ Respond with a JSON object matching the VisualizationSpec schema:
   "stacked": true | false (optional),
   "kpiValue": "column name for KPI value (when chartType is kpi)",
   "kpiLabel": "Label for KPI (when chartType is kpi)",
-  "kpiComparison": "column name for comparison value (optional)"
+  "kpiComparison": "column name for comparison value (optional)",
+  "chartConfig": { // Required for: pie, donut, funnel, radar, treemap, waterfall, histogram, gauge, heatmap
+    "type": "must match chartType",
+    // Pie/Donut: "nameKey", "valueKey", "innerRadius" (optional), "labelType": "value"|"percent"|"name"|"none" (optional)
+    // Funnel: "nameKey", "valueKey", "reversed" (optional)
+    // Radar: "angleKey", "radiusLabel" (optional)
+    // Treemap: "nameKey", "sizeKey", "colorKey" (optional)
+    // Waterfall: "categoryKey", "valueKey", "totalLabel" (optional), "positiveColor" (optional), "negativeColor" (optional)
+    // Histogram: "valueKey", "binCount" (optional, default 10)
+    // Gauge: "valueKey", "min", "max", "target" (optional), "unit" (optional)
+    // Heatmap: "xKey", "yKey", "valueKey", "colorScale": "blue"|"green"|"red"|"diverging" (optional), "showValues" (optional)
+  }
 }`;
 
 function buildUserMessage(

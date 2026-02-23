@@ -16,6 +16,15 @@ import {
   InsightAnnotationSchema,
   VisualizationSpecSchema,
   SeriesConfigSchema,
+  ChartConfigSchema,
+  PieConfigSchema,
+  FunnelConfigSchema,
+  RadarConfigSchema,
+  TreemapConfigSchema,
+  WaterfallConfigSchema,
+  HistogramConfigSchema,
+  GaugeConfigSchema,
+  HeatmapConfigSchema,
   AgentTraceSchema,
   GeneratedSQLSchema,
   OrchestratorTraceSchema,
@@ -378,7 +387,36 @@ describe("VisualizationSpecSchema", () => {
   });
 
   it("rejects invalid chart type", () => {
-    expect(() => VisualizationSpecSchema.parse({ ...valid, chartType: "pie" })).toThrow();
+    expect(() => VisualizationSpecSchema.parse({ ...valid, chartType: "unknown_type" })).toThrow();
+  });
+
+  it("accepts pie chart type", () => {
+    expect(
+      VisualizationSpecSchema.parse({
+        chartType: "pie",
+        title: "Revenue by Region",
+        series: [],
+        chartConfig: { type: "pie", nameKey: "region", valueKey: "revenue" },
+      }),
+    ).toBeTruthy();
+  });
+
+  it("accepts donut chart type", () => {
+    expect(
+      VisualizationSpecSchema.parse({
+        chartType: "donut",
+        title: "Market Share",
+        series: [],
+        chartConfig: { type: "donut", nameKey: "company", valueKey: "share", innerRadius: "60%" },
+      }),
+    ).toBeTruthy();
+  });
+
+  it("accepts all new chart types", () => {
+    const newTypes = ["pie", "donut", "funnel", "radar", "treemap", "waterfall", "histogram", "gauge", "heatmap"];
+    for (const chartType of newTypes) {
+      expect(() => VisualizationSpecSchema.parse({ chartType, series: [] })).not.toThrow();
+    }
   });
 
   it("accepts a KPI spec", () => {
@@ -589,5 +627,147 @@ describe("ValidationResultSchema", () => {
     });
     expect(result.valid).toBe(false);
     expect(result.issues).toHaveLength(1);
+  });
+});
+
+// ── Chart Config types ───────────────────────────────────────────
+
+describe("PieConfigSchema", () => {
+  it("accepts a valid pie config", () => {
+    expect(PieConfigSchema.parse({ type: "pie", nameKey: "region", valueKey: "revenue" })).toBeTruthy();
+  });
+
+  it("accepts a donut config with innerRadius", () => {
+    expect(
+      PieConfigSchema.parse({ type: "donut", nameKey: "category", valueKey: "amount", innerRadius: "60%", labelType: "percent" }),
+    ).toBeTruthy();
+  });
+
+  it("rejects missing nameKey", () => {
+    expect(() => PieConfigSchema.parse({ type: "pie", valueKey: "revenue" })).toThrow();
+  });
+});
+
+describe("FunnelConfigSchema", () => {
+  it("accepts a valid funnel config", () => {
+    expect(FunnelConfigSchema.parse({ type: "funnel", nameKey: "stage", valueKey: "count" })).toBeTruthy();
+  });
+
+  it("accepts reversed funnel", () => {
+    expect(FunnelConfigSchema.parse({ type: "funnel", nameKey: "stage", valueKey: "count", reversed: true })).toBeTruthy();
+  });
+});
+
+describe("RadarConfigSchema", () => {
+  it("accepts a valid radar config", () => {
+    expect(RadarConfigSchema.parse({ type: "radar", angleKey: "skill" })).toBeTruthy();
+  });
+
+  it("accepts with radiusLabel", () => {
+    expect(RadarConfigSchema.parse({ type: "radar", angleKey: "dimension", radiusLabel: "Score" })).toBeTruthy();
+  });
+});
+
+describe("TreemapConfigSchema", () => {
+  it("accepts a valid treemap config", () => {
+    expect(TreemapConfigSchema.parse({ type: "treemap", nameKey: "department", sizeKey: "budget" })).toBeTruthy();
+  });
+
+  it("accepts with colorKey", () => {
+    expect(TreemapConfigSchema.parse({ type: "treemap", nameKey: "dept", sizeKey: "budget", colorKey: "growth" })).toBeTruthy();
+  });
+});
+
+describe("WaterfallConfigSchema", () => {
+  it("accepts a valid waterfall config", () => {
+    expect(WaterfallConfigSchema.parse({ type: "waterfall", categoryKey: "item", valueKey: "amount" })).toBeTruthy();
+  });
+
+  it("accepts with colors and totalLabel", () => {
+    expect(
+      WaterfallConfigSchema.parse({
+        type: "waterfall",
+        categoryKey: "item",
+        valueKey: "amount",
+        totalLabel: "Total",
+        positiveColor: "#16a34a",
+        negativeColor: "#dc2626",
+        totalColor: "#2563eb",
+      }),
+    ).toBeTruthy();
+  });
+});
+
+describe("HistogramConfigSchema", () => {
+  it("accepts a valid histogram config", () => {
+    expect(HistogramConfigSchema.parse({ type: "histogram", valueKey: "duration" })).toBeTruthy();
+  });
+
+  it("accepts with binCount", () => {
+    expect(HistogramConfigSchema.parse({ type: "histogram", valueKey: "age", binCount: 20 })).toBeTruthy();
+  });
+
+  it("rejects binCount < 2", () => {
+    expect(() => HistogramConfigSchema.parse({ type: "histogram", valueKey: "x", binCount: 1 })).toThrow();
+  });
+});
+
+describe("GaugeConfigSchema", () => {
+  it("accepts a valid gauge config", () => {
+    expect(GaugeConfigSchema.parse({ type: "gauge", valueKey: "completion" })).toBeTruthy();
+  });
+
+  it("accepts with thresholds and target", () => {
+    expect(
+      GaugeConfigSchema.parse({
+        type: "gauge",
+        valueKey: "utilization",
+        min: 0,
+        max: 100,
+        target: 80,
+        unit: "%",
+        thresholds: [
+          { value: 50, color: "#dc2626", label: "Low" },
+          { value: 80, color: "#ca8a04", label: "Medium" },
+          { value: 100, color: "#16a34a", label: "High" },
+        ],
+      }),
+    ).toBeTruthy();
+  });
+});
+
+describe("HeatmapConfigSchema", () => {
+  it("accepts a valid heatmap config", () => {
+    expect(HeatmapConfigSchema.parse({ type: "heatmap", xKey: "hour", yKey: "day", valueKey: "count" })).toBeTruthy();
+  });
+
+  it("accepts with colorScale and showValues", () => {
+    expect(
+      HeatmapConfigSchema.parse({
+        type: "heatmap",
+        xKey: "hour",
+        yKey: "day",
+        valueKey: "activity",
+        colorScale: "diverging",
+        showValues: true,
+      }),
+    ).toBeTruthy();
+  });
+});
+
+describe("ChartConfigSchema (discriminated union)", () => {
+  it("routes to correct schema based on type", () => {
+    expect(ChartConfigSchema.parse({ type: "pie", nameKey: "a", valueKey: "b" })).toBeTruthy();
+    expect(ChartConfigSchema.parse({ type: "funnel", nameKey: "a", valueKey: "b" })).toBeTruthy();
+    expect(ChartConfigSchema.parse({ type: "radar", angleKey: "a" })).toBeTruthy();
+    expect(ChartConfigSchema.parse({ type: "treemap", nameKey: "a", sizeKey: "b" })).toBeTruthy();
+    expect(ChartConfigSchema.parse({ type: "waterfall", categoryKey: "a", valueKey: "b" })).toBeTruthy();
+    expect(ChartConfigSchema.parse({ type: "histogram", valueKey: "a" })).toBeTruthy();
+    expect(ChartConfigSchema.parse({ type: "gauge", valueKey: "a" })).toBeTruthy();
+    expect(ChartConfigSchema.parse({ type: "heatmap", xKey: "a", yKey: "b", valueKey: "c" })).toBeTruthy();
+  });
+
+  it("rejects unknown type", () => {
+    expect(() => ChartConfigSchema.parse({ type: "unknown", nameKey: "a" })).toThrow();
   });
 });

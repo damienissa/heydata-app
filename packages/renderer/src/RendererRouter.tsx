@@ -1,6 +1,20 @@
 import type { ColumnMetadata, Row, VisualizationSpec } from "@heydata/shared";
 
-import { AreaChart, BarChart, ComposedChart, LineChart, ScatterChart } from "./charts/index.js";
+import {
+  AreaChart,
+  BarChart,
+  ComposedChart,
+  FunnelChart,
+  GaugeChart,
+  HeatmapChart,
+  HistogramChart,
+  LineChart,
+  PieDonutChart,
+  RadarChart,
+  ScatterChart,
+  TreemapChart,
+  WaterfallChart,
+} from "./charts/index.js";
 import { DataTable, KpiCard } from "./components/index.js";
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH } from "./types.js";
 
@@ -68,6 +82,87 @@ export function RendererRouter({
     case "composed":
       return (
         <ComposedChart
+          spec={spec}
+          data={data}
+          width={width}
+          height={height}
+          className={className}
+        />
+      );
+    case "pie":
+    case "donut":
+      return (
+        <PieDonutChart
+          spec={spec}
+          data={data}
+          width={width}
+          height={height}
+          className={className}
+        />
+      );
+    case "funnel":
+      return (
+        <FunnelChart
+          spec={spec}
+          data={data}
+          width={width}
+          height={height}
+          className={className}
+        />
+      );
+    case "radar":
+      return (
+        <RadarChart
+          spec={spec}
+          data={data}
+          width={width}
+          height={height}
+          className={className}
+        />
+      );
+    case "treemap":
+      return (
+        <TreemapChart
+          spec={spec}
+          data={data}
+          width={width}
+          height={height}
+          className={className}
+        />
+      );
+    case "waterfall":
+      return (
+        <WaterfallChart
+          spec={spec}
+          data={data}
+          width={width}
+          height={height}
+          className={className}
+        />
+      );
+    case "histogram":
+      return (
+        <HistogramChart
+          spec={spec}
+          data={data}
+          width={width}
+          height={height}
+          className={className}
+        />
+      );
+    case "gauge":
+      return (
+        <GaugeChart
+          spec={spec}
+          data={data}
+          width={width}
+          height={height}
+          className={className}
+        />
+      );
+    case "heatmap":
+      return (
+        <HeatmapChart
           spec={spec}
           data={data}
           width={width}

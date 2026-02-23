@@ -120,6 +120,22 @@ pnpm add -D react react-dom @types/react @types/react-dom tsup vitest
 
 ---
 
+## Phase 4b — Chart Type Expansion
+
+Extends `@heydata/renderer` from 7 to 16 chart types with full viz-planner AI support.
+
+- [x] Extend `ChartTypeSchema` with 9 new types: pie, donut, funnel, radar, treemap, waterfall, histogram, gauge, heatmap
+- [x] Add `ChartConfigSchema` discriminated union to `VisualizationSpec` for chart-specific configuration
+- [x] Implement Recharts-native charts: `PieDonutChart`, `FunnelChart`, `RadarChart`, `TreemapChart`
+- [x] Implement custom charts: `WaterfallChart` (stacked bars), `HistogramChart` (auto-binning), `GaugeChart` (custom SVG), `HeatmapChart` (custom SVG grid)
+- [x] Add `utils/color-scales.ts` for heatmap/treemap color interpolation
+- [x] Update `RendererRouter` with all new chart type cases
+- [x] Update viz-planner agent system prompt with new chart guidelines and `chartConfig` schema
+- [x] Add RendererRouter tests for all 9 new chart types
+- [x] Add schema validation tests for all `ChartConfig` types
+
+---
+
 ## Phase 5 — `@heydata/core` — AI Agent Pipeline
 
 ```sh

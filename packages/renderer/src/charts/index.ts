@@ -1,5 +1,13 @@
 export { AreaChart } from "./AreaChart.js";
 export { BarChart } from "./BarChart.js";
 export { ComposedChart } from "./ComposedChart.js";
+export { FunnelChart } from "./FunnelChart.js";
+export { GaugeChart } from "./GaugeChart.js";
+export { HeatmapChart } from "./HeatmapChart.js";
+export { HistogramChart } from "./HistogramChart.js";
 export { LineChart } from "./LineChart.js";
+export { PieDonutChart } from "./PieDonutChart.js";
+export { RadarChart } from "./RadarChart.js";
 export { ScatterChart } from "./ScatterChart.js";
+export { TreemapChart } from "./TreemapChart.js";
+export { WaterfallChart } from "./WaterfallChart.js";

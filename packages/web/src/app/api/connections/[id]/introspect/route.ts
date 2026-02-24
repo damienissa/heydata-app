@@ -3,6 +3,7 @@ export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPoolManager } from "@heydata/bridge";
+import { decryptConnectionString, CryptoDecryptionError } from "@/lib/crypto";
 
 /** Connection row fields needed for introspection */
 type ConnectionForIntrospect = {
@@ -39,10 +40,22 @@ export async function POST(
   }
 
   const c = conn as ConnectionForIntrospect;
+
+  let plainConnectionString: string;
+  try {
+    plainConnectionString = decryptConnectionString(c.connection_string);
+  } catch (err) {
+    if (err instanceof CryptoDecryptionError) {
+      console.error("[introspect] Decryption failed for connection:", id, err.message);
+      return NextResponse.json({ error: "Failed to decrypt connection credentials." }, { status: 500 });
+    }
+    throw err;
+  }
+
   const poolManager = getPoolManager();
   try {
     const { pool, adapter } = await poolManager.getPool(c.id, c.db_type, {
-      connectionString: c.connection_string,
+      connectionString: plainConnectionString,
       sslEnabled: c.ssl_enabled ?? true,
     });
 

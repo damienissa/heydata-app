@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ConnectionConfigSchema } from "@heydata/shared";
 import { getPoolManager } from "@heydata/bridge";
+import { encryptConnectionString } from "@/lib/crypto";
 
 /**
  * GET /api/connections — List all connections for the authenticated user
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
     user_id: user.id,
     name,
     db_type: dbType,
-    connection_string: connectionString,
+    connection_string: encryptConnectionString(connectionString),
     ssl_enabled: sslEnabled,
     status: "active",
     last_tested_at: new Date().toISOString(),

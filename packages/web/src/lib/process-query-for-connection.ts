@@ -1,5 +1,6 @@
 import { getPoolManager } from "@heydata/bridge";
 import { createOrchestrator } from "@heydata/core";
+import { decryptConnectionString } from "@/lib/crypto";
 import type {
   OrchestratorResponse,
   ResultSet,
@@ -51,6 +52,17 @@ export async function processQueryForConnection(
 
   const conn = connection as ConnectionRow;
 
+  let plainConnectionString: string;
+  try {
+    plainConnectionString = decryptConnectionString(conn.connection_string);
+  } catch (err) {
+    throw new HeyDataError(
+      "DECRYPTION_FAILED",
+      `Failed to decrypt connection string for ${connectionId}: ${err instanceof Error ? err.message : String(err)}`,
+      { agent: "orchestrator" },
+    );
+  }
+
   // 2. Load semantic layer for this connection
   const { data: layer, error: layerError } = await supabase
     .from("semantic_layers")
@@ -83,7 +95,7 @@ export async function processQueryForConnection(
   // 3. Get pool and create execute function
   const poolManager = getPoolManager();
   const { pool, adapter } = await poolManager.getPool(connectionId, conn.db_type, {
-    connectionString: conn.connection_string,
+    connectionString: plainConnectionString,
     sslEnabled: conn.ssl_enabled ?? true,
   });
 

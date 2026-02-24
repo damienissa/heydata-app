@@ -341,3 +341,19 @@ Replace the rigid JSONB semantic layer with a human-readable Markdown document s
 
 - [x] `packages/web/src/app/connections/[id]/semantic/page.tsx` — New split-view editor (textarea + rendered Markdown preview, Save + Regenerate actions)
 - [x] Add "Semantic Layer" navigation link from connection header or settings area (book icon in Manage connections dialog)
+
+---
+
+## Phase 19 — Encryption at Rest for `connection_string`
+
+Encrypt `connections.connection_string` with AES-256-GCM before writing to Supabase and decrypt on every server-side read. No schema changes — the existing `TEXT` column stores the versioned ciphertext `v1:<iv_hex>:<authTag_hex>:<ciphertext_hex>`. Key managed via `CONNECTION_STRING_ENCRYPTION_KEY` env var (64 hex chars / 32 bytes).
+
+- [x] `packages/web/src/lib/crypto.ts` — `encryptConnectionString`, `decryptConnectionString`, `CryptoDecryptionError`
+- [x] `packages/web/src/app/api/connections/route.ts` — POST: encrypt before insert
+- [x] `packages/web/src/app/api/connections/[id]/route.ts` — PUT: encrypt `connection_string` on update
+- [x] `packages/web/src/app/api/connections/[id]/test/route.ts` — decrypt before pool creation
+- [x] `packages/web/src/app/api/connections/[id]/introspect/route.ts` — decrypt before pool creation
+- [x] `packages/web/src/app/api/connections/[id]/semantic/generate/route.ts` — decrypt before pool creation
+- [x] `packages/web/src/lib/process-query-for-connection.ts` — decrypt before pool creation
+- [x] `supabase/migrations/20260224010000_encrypt_connection_string.sql` — document encrypted column
+- [x] `.env.example` — add `CONNECTION_STRING_ENCRYPTION_KEY`

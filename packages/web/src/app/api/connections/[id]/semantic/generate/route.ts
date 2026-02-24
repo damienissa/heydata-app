@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPoolManager } from "@heydata/bridge";
 import { generateSemanticFromSchema } from "@heydata/core";
+import { decryptConnectionString, CryptoDecryptionError } from "@/lib/crypto";
 
 /** Connection row fields needed for semantic generation */
 type ConnectionForSemantic = {
@@ -41,12 +42,24 @@ export async function POST(
   }
 
   const c = conn as ConnectionForSemantic;
+
+  let plainConnectionString: string;
+  try {
+    plainConnectionString = decryptConnectionString(c.connection_string);
+  } catch (err) {
+    if (err instanceof CryptoDecryptionError) {
+      console.error("[semantic/generate] Decryption failed for connection:", connectionId, err.message);
+      return NextResponse.json({ error: "Failed to decrypt connection credentials." }, { status: 500 });
+    }
+    throw err;
+  }
+
   const poolManager = getPoolManager();
 
   try {
     // 1. Introspect schema
     const { pool, adapter } = await poolManager.getPool(c.id, c.db_type, {
-      connectionString: c.connection_string,
+      connectionString: plainConnectionString,
       sslEnabled: c.ssl_enabled ?? true,
     });
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPoolManager } from "@heydata/bridge";
+import { encryptConnectionString } from "@/lib/crypto";
 
 /**
  * GET /api/connections/:id — Get a single connection
@@ -49,7 +50,9 @@ export async function PUT(
   // Only allow updating certain fields
   const updates: Record<string, unknown> = {};
   if (body.name !== undefined) updates.name = body.name;
-  if (body.connectionString !== undefined) updates.connection_string = body.connectionString;
+  if (body.connectionString !== undefined) {
+    updates.connection_string = encryptConnectionString(body.connectionString as string);
+  }
   if (body.sslEnabled !== undefined) updates.ssl_enabled = body.sslEnabled;
 
   if (Object.keys(updates).length === 0) {

@@ -34,6 +34,7 @@ export const HeyDataErrorCodeSchema = z.enum([
   // Connection/semantic lookup
   "CONNECTION_NOT_FOUND",
   "SEMANTIC_LAYER_NOT_FOUND",
+  "DECRYPTION_FAILED",
 
   // Semantic layer errors
   "METRIC_NOT_FOUND",

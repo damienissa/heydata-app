@@ -328,7 +328,7 @@ export async function validateData(
     },
     trace: createSuccessTrace({
       agent: "data_validator",
-      model: context.model,
+      model: context.fastModel,
       startedAt,
       inputTokens: 0,
       outputTokens: 0,

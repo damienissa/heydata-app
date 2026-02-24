@@ -30,8 +30,10 @@ import { QueryCache } from "./cache.js";
 export interface OrchestratorConfig {
   /** Anthropic API key */
   apiKey: string;
-  /** Model to use for LLM calls */
+  /** Model for complex agents: SQL generation, data analysis, narrative */
   model?: string;
+  /** Faster model for structured agents: intent, validation, viz planning */
+  fastModel?: string;
   /** Target warehouse dialect */
   dialect?: WarehouseDialect;
   /** Maximum retries for SQL generation */
@@ -65,6 +67,7 @@ export interface OrchestratorInput {
  */
 const DEFAULT_CONFIG: Required<Omit<OrchestratorConfig, "apiKey">> = {
   model: "claude-sonnet-4-20250514",
+  fastModel: "claude-haiku-4-5-20251001",
   dialect: "postgresql",
   maxSqlRetries: 3,
   maxDataRetries: 2,
@@ -106,6 +109,7 @@ export class Orchestrator {
       requestId,
       client: this.client,
       model: this.config.model,
+      fastModel: this.config.fastModel,
       dialect: this.config.dialect,
       signal,
     };

@@ -357,3 +357,18 @@ Encrypt `connections.connection_string` with AES-256-GCM before writing to Supab
 - [x] `packages/web/src/lib/process-query-for-connection.ts` — decrypt before pool creation
 - [x] `supabase/migrations/20260224010000_encrypt_connection_string.sql` — document encrypted column
 - [x] `.env.example` — add `CONNECTION_STRING_ENCRYPTION_KEY`
+
+---
+
+## Phase 20 — Tiered Model Strategy
+
+Use `claude-haiku-4-5-20251001` for lightweight structured agents and keep `claude-sonnet-4-20250514` for complex reasoning agents. Reduces per-request latency ~40-50% on steps 1, 3, 4, and viz-planner.
+
+- [x] Add `fastModel` field to `AgentContext` in `packages/core/src/types.ts`
+- [x] Add `fastModel?: string` to `OrchestratorConfig` + `DEFAULT_CONFIG` in `packages/core/src/orchestrator.ts`
+- [x] Pass `fastModel` through `createContext()` in orchestrator
+- [x] `intent-resolver.ts` — switch to `context.fastModel` (Haiku)
+- [x] `sql-validator.ts` — switch to `context.fastModel` (Haiku)
+- [x] `data-validator.ts` — switch to `context.fastModel` (Haiku)
+- [x] `viz-planner.ts` — switch to `context.fastModel` (Haiku)
+- Keep `context.model` (Sonnet) in: `sql-generator.ts`, `data-analyzer.ts`, `narrative.ts`, `semantic-generator.ts`

@@ -13,70 +13,142 @@ export interface SemanticGeneratorInput extends AgentInput {
   introspectedSchema: IntrospectedSchema;
 }
 
-const SYSTEM_PROMPT = `You are an expert data modeler. Your task is to analyze a database schema and produce a Markdown semantic layer document that will power natural language queries.
+const SYSTEM_PROMPT = `
+You are an expert analytics engineer. Analyze the provided database schema and produce a schema-agnostic semantic layer for natural language to SQL.
 
-The document gives AI agents full context about the database — what tables exist, what metrics can be computed, how tables relate, and any business rules — so they can generate accurate SQL queries from natural language questions.
+The database structure may vary across installations (different table names, missing FKs, different modeling styles). Therefore:
+- Prefer canonical concepts plus mappings over hard-coded dependencies.
+- Clearly separate verified facts from assumptions.
+- Assign confidence to every inferred mapping, relationship, or metric.
+- Only output SQL formulas when the required fields exist.
 
-## Output Format
-
-Produce a Markdown document with these sections:
+Output Markdown only. Start with "# Semantic Layer".
 
 # Semantic Layer
 
 ## Overview
-[1-2 sentences describing what this database represents and what it tracks]
+Provide 1 to 3 sentences describing what this database likely represents based on schema evidence.
 
-## Tables
+## Canonical Model (stable vocabulary)
+Define these canonical entities if present (otherwise mark as "not detected"):
+- User
+- Account or Organization or Tenant
+- Product or Item
+- Order or Invoice
+- Payment or Transaction
+- Subscription
+- Event or Activity
+- Session or Visit
+- Support or Ticket (optional)
 
-### {table_name}
-**Purpose**: [what this table stores]
-**Primary Key**: \`{pk_column}\`
-**Columns**:
-- \`{column}\` ({data_type}[, PK][, FK→{other_table}.{other_column}]) — [short description]
-[repeat for each important column]
+For each canonical entity include:
+- Detected: yes or no
+- Grain: one row per what?
+- Primary identifier (canonical)
+- Time fields (canonical): created_at, occurred_at, updated_at if any
+- Candidate physical sources: list mappings with confidence and evidence
 
-[repeat ### block for each table]
+## Mappings (canonical to physical)
+For each canonical field, map to real columns if possible.
 
-## Metrics
+Format:
 
-### {metric_name}
-- **Formula**: \`{SQL aggregate expression using table.column references}\`
-- **Description**: [what this metric measures]
-- **Synonyms**: [comma-separated list of alternative names users might say]
-- **Format**: [currency_usd | percentage | number] (omit if plain number)
+### {CanonicalEntity}.{canonical_field}
+- Physical: table.column or NOT AVAILABLE
+- Confidence: high, medium, or low
+- Evidence: FK exists, naming pattern, type match, value pattern, etc.
+- Notes or Fallback: how to approximate if missing
 
-[repeat for each metric — aim for 5-10 meaningful metrics]
+Canonical fields to try:
 
-## Dimensions
+User:
+- user_id
+- email
+- created_at
+- status
 
-### {dimension_name}
-- **Source**: \`{table}.{column}\`
-- **Type**: [string | number | date | boolean]
-- **Description**: [what this dimension represents]
-- **Synonyms**: [comma-separated alternatives]
+Account:
+- account_id
+- owner_user_id
+- created_at
+- plan
 
-[repeat for each dimension — aim for 8-15 dimensions]
+Order or Invoice:
+- order_id
+- account_id or user_id
+- amount
+- currency
+- status
+- created_at
+
+Payment:
+- payment_id
+- order_id
+- amount
+- status
+- paid_at
+
+Subscription:
+- subscription_id
+- account_id or user_id
+- status
+- started_at
+- ended_at
+- trial_end
+
+Event:
+- event_id or surrogate
+- user_id or account_id
+- event_name
+- occurred_at
+- properties (json)
+
+## Physical Tables (appendix style)
+List tables with:
+- Purpose (inferred)
+- Grain
+- Primary key candidates
+- Key columns (only important ones)
 
 ## Relationships
-- \`{table_a}\` → \`{table_b}\`: [one-to-many | one-to-one | many-to-many] via \`{table_b}.{fk_col} = {table_a}.{pk_col}\`
-[one line per relationship]
+List joins with confidence:
+- TableA to TableB: cardinality, join condition
+- Include confidence and evidence
+If no safe join exists, say so and propose discovery queries.
 
-## Domain Knowledge
-<!-- This section is intentionally left for the user to fill in.
-Examples of what to add:
-- Revenue always excludes trial periods and test accounts
-- "Active user" means logged in within the last 30 days
-- Data before a certain date is unreliable due to a migration
--->
+## Metrics (canonical, conditional)
+Define 8 to 15 useful metrics. Each must include:
+- Definition
+- Required canonical fields (for example Payment.amount, Payment.paid_at)
+- SQL template (Postgres) only if all required fields mapped; otherwise NOT COMPUTABLE
+- Grain: overall, per day, per account, or per user
+- Common filters such as test data, refunds, trial (placeholders allowed)
+- Synonyms
 
-## Guidelines
+## Dimensions
+Define 10 to 20 analysis dimensions:
+- Canonical source
+- Physical mapping or NOT AVAILABLE
+- Type
+- Synonyms
 
-- Use ONLY table and column names that actually appear in the schema
-- For COUNT metrics on entity tables, use the PRIMARY KEY column (e.g. COUNT(DISTINCT users.id))
-- Metric formulas must be valid PostgreSQL aggregate expressions
-- Synonyms are critical — add all terms a user might naturally say for each metric/dimension
-- Keep descriptions concise but precise
-- Output the Markdown document only, starting with "# Semantic Layer"`;
+## Data Quality and Assumptions
+
+### Verified from schema
+Bullet list.
+
+### Assumptions (may be wrong)
+Bullet list with confidence.
+
+### Questions to confirm (max 5)
+Only the most important unknowns that affect correctness.
+
+## Query Playbook (agent guardrails)
+- How to choose time columns
+- How to avoid double counting (event vs order tables)
+- Safe exploration queries (LIMIT, null-rate checks, distinct key checks)
+- How to handle missing FKs (join discovery approach)
+`;
 
 function buildUserMessage(schema: IntrospectedSchema): string {
   const tablesDesc = schema.tables
@@ -117,6 +189,7 @@ export async function generateSemanticFromSchema(
       requestId: `sem_${Date.now()}`,
       client,
       model: "claude-sonnet-4-20250514",
+      fastModel: "claude-haiku-4-5-20251001",
       dialect: "postgresql",
       signal: options?.signal,
     },
@@ -138,6 +211,9 @@ export async function generateSemantic(
 
   try {
     const userMessage = buildUserMessage(introspectedSchema);
+    console.log(
+      `[semantic-generator] Starting generation for ${introspectedSchema.tables.length} tables (model: ${context.model})`,
+    );
 
     const response = await context.client.messages.create(
       {
@@ -147,6 +223,11 @@ export async function generateSemantic(
         messages: [{ role: "user", content: userMessage }],
       },
       context.signal ? { signal: context.signal } : undefined,
+    );
+
+    const { inputTokens, outputTokens } = extractTokenUsage(response);
+    console.log(
+      `[semantic-generator] Complete — input: ${inputTokens} tokens, output: ${outputTokens} tokens`,
     );
 
     const textBlock = response.content.find((b) => b.type === "text");
@@ -162,8 +243,8 @@ export async function generateSemantic(
         agent: "semantic_generator",
         model: context.model,
         startedAt,
-        inputTokens: extractTokenUsage(response).inputTokens,
-        outputTokens: extractTokenUsage(response).outputTokens,
+        inputTokens,
+        outputTokens,
       }),
     };
   } catch (error) {

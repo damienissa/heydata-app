@@ -155,7 +155,7 @@ export async function planVisualization(
       },
       trace: createSuccessTrace({
         agent: "viz_planner",
-        model: context.model,
+        model: context.fastModel,
         startedAt,
         inputTokens: 0,
         outputTokens: 0,
@@ -178,7 +178,7 @@ export async function planVisualization(
         },
         trace: createSuccessTrace({
           agent: "viz_planner",
-          model: context.model,
+          model: context.fastModel,
           startedAt,
           inputTokens: 0,
           outputTokens: 0,
@@ -191,7 +191,7 @@ export async function planVisualization(
     const userMessage = buildUserMessage(intent, resultSet);
 
     const response = await context.client.messages.create({
-      model: context.model,
+      model: context.fastModel,
       max_tokens: 1024,
       temperature: 0,
       system: SYSTEM_PROMPT,
@@ -228,7 +228,7 @@ export async function planVisualization(
       data: validated,
       trace: createSuccessTrace({
         agent: "viz_planner",
-        model: context.model,
+        model: context.fastModel,
         startedAt,
         inputTokens,
         outputTokens,
@@ -242,7 +242,7 @@ export async function planVisualization(
     const trace = createErrorTrace(
       {
         agent: "viz_planner",
-        model: context.model,
+        model: context.fastModel,
         startedAt,
       },
       error instanceof Error ? error : new Error(String(error)),

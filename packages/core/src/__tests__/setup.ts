@@ -61,6 +61,7 @@ export function createMockContext(
     requestId: "test_req_123",
     client,
     model: "claude-sonnet-4-20250514",
+    fastModel: "claude-haiku-4-5-20251001",
     dialect: "postgresql",
     ...overrides,
   };

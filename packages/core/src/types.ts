@@ -9,8 +9,10 @@ export interface AgentContext {
   requestId: string;
   /** Anthropic client instance */
   client: Anthropic;
-  /** Model to use for LLM calls */
+  /** Model to use for LLM calls (complex agents: SQL gen, analysis, narrative) */
   model: string;
+  /** Faster/cheaper model for structured agents (intent, validation, viz planning) */
+  fastModel: string;
   /** Target warehouse dialect */
   dialect: WarehouseDialect;
   /** Optional abort signal for cancellation */

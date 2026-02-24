@@ -139,7 +139,7 @@ export async function resolveIntent(
     const userMessage = buildUserMessage(question, sessionContext);
 
     const response = await context.client.messages.create({
-      model: context.model,
+      model: context.fastModel,
       max_tokens: 1024,
       temperature: 0,
       system: systemPrompt,
@@ -181,7 +181,7 @@ export async function resolveIntent(
       data: validated,
       trace: createSuccessTrace({
         agent: "intent_resolver",
-        model: context.model,
+        model: context.fastModel,
         startedAt,
         inputTokens,
         outputTokens,
@@ -195,7 +195,7 @@ export async function resolveIntent(
     const trace = createErrorTrace(
       {
         agent: "intent_resolver",
-        model: context.model,
+        model: context.fastModel,
         startedAt,
       },
       error instanceof Error ? error : new Error(String(error)),

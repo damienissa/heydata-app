@@ -27,11 +27,7 @@ export default function SetupPage() {
   const [connectionId, setConnectionId] = useState<string | null>(null);
   const [connectionName, setConnectionName] = useState<string>("");
   const [schema, setSchema] = useState<IntrospectedSchema | null>(null);
-  const [semanticLayer, setSemanticLayer] = useState<{
-    metrics: unknown[];
-    dimensions: unknown[];
-    entities: unknown[];
-  } | null>(null);
+  const [semanticMarkdown, setSemanticMarkdown] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -101,11 +97,7 @@ export default function SetupPage() {
         throw new Error(json.error ?? res.statusText);
       }
       const data = await res.json();
-      setSemanticLayer({
-        metrics: data.metrics ?? [],
-        dimensions: data.dimensions ?? [],
-        entities: data.entities ?? [],
-      });
+      setSemanticMarkdown(data.semantic_md ?? "");
       setStep(4);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -216,9 +208,9 @@ export default function SetupPage() {
           {step === 4 && (
             <div>
               <h2 className="mb-4 text-lg font-medium">All set!</h2>
-              {semanticLayer && (
+              {semanticMarkdown && (
                 <div className="mb-6">
-                  <SemanticPreview layer={semanticLayer} />
+                  <SemanticPreview semanticMarkdown={semanticMarkdown} />
                 </div>
               )}
               <p className="mb-6 text-sm text-muted-foreground">

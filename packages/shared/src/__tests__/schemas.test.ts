@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  MetricDefinitionSchema,
-  DimensionDefinitionSchema,
-  EntityRelationshipSchema,
   SemanticMetadataSchema,
   IntentObjectSchema,
   AdHocMetricSchema,
@@ -38,103 +35,23 @@ import {
 
 // ── Semantic types ────────────────────────────────────────────────
 
-describe("MetricDefinitionSchema", () => {
-  const valid = {
-    name: "daily_revenue",
-    displayName: "Daily Revenue",
-    description: "Total revenue per day, net of refunds",
-    formula: "SUM(orders.gross_amount) - SUM(refunds.amount)",
-    grain: "daily",
-    dimensions: ["date", "region", "product_category"],
-    synonyms: ["revenue", "sales"],
-    formatting: { type: "currency", currencyCode: "USD", decimalPlaces: 2 },
-  };
-
-  it("accepts a valid metric definition", () => {
-    expect(MetricDefinitionSchema.parse(valid)).toEqual(valid);
-  });
-
-  it("rejects missing required fields", () => {
-    expect(() => MetricDefinitionSchema.parse({ name: "x" })).toThrow();
-  });
-
-  it("rejects invalid grain", () => {
-    expect(() => MetricDefinitionSchema.parse({ ...valid, grain: "minute" })).toThrow();
-  });
-});
-
-describe("DimensionDefinitionSchema", () => {
-  const valid = {
-    name: "region",
-    displayName: "Region",
-    description: "Geographic region",
-    table: "customers",
-    column: "region",
-    type: "string",
-  };
-
-  it("accepts a valid dimension", () => {
-    expect(DimensionDefinitionSchema.parse(valid)).toEqual(valid);
-  });
-
-  it("rejects invalid type", () => {
-    expect(() => DimensionDefinitionSchema.parse({ ...valid, type: "array" })).toThrow();
-  });
-});
-
-describe("EntityRelationshipSchema", () => {
-  const valid = {
-    from: { table: "orders", column: "customer_id" },
-    to: { table: "customers", column: "id" },
-    type: "one-to-many",
-  };
-
-  it("accepts a valid relationship", () => {
-    expect(EntityRelationshipSchema.parse(valid)).toEqual(valid);
-  });
-
-  it("rejects missing 'to' field", () => {
-    expect(() =>
-      EntityRelationshipSchema.parse({ from: { table: "a", column: "b" }, type: "one-to-one" }),
-    ).toThrow();
-  });
-});
-
 describe("SemanticMetadataSchema", () => {
-  it("accepts a full semantic metadata object", () => {
-    const result = SemanticMetadataSchema.parse({
-      metrics: [
-        {
-          name: "revenue",
-          displayName: "Revenue",
-          description: "Total revenue",
-          formula: "SUM(amount)",
-          dimensions: ["date"],
-        },
-      ],
-      dimensions: [
-        {
-          name: "date",
-          displayName: "Date",
-          description: "Order date",
-          table: "orders",
-          column: "created_at",
-          type: "date",
-        },
-      ],
-      relationships: [],
-    });
-    expect(result.metrics).toHaveLength(1);
+  it("accepts a Markdown semantic layer", () => {
+    const md = "# Semantic Layer\n\n## Overview\nThis database powers analytics.\n";
+    const result = SemanticMetadataSchema.parse({ semanticMarkdown: md });
+    expect(result.semanticMarkdown).toBe(md);
   });
 
   it("accepts rawSchemaDDL when provided", () => {
     const result = SemanticMetadataSchema.parse({
-      metrics: [],
-      dimensions: [],
-      relationships: [],
+      semanticMarkdown: "# Semantic Layer\n",
       rawSchemaDDL: "orders(id uuid PK, amount numeric, created_at timestamptz)",
     });
     expect(result.rawSchemaDDL).toBe("orders(id uuid PK, amount numeric, created_at timestamptz)");
+  });
+
+  it("rejects missing semanticMarkdown", () => {
+    expect(() => SemanticMetadataSchema.parse({})).toThrow();
   });
 });
 

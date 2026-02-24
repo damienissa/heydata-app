@@ -3,9 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const UpdateSemanticSchema = z.object({
-  metrics: z.array(z.unknown()).optional(),
-  dimensions: z.array(z.unknown()).optional(),
-  entities: z.array(z.unknown()).optional(),
+  semantic_md: z.string(),
 });
 
 /**
@@ -26,7 +24,7 @@ export async function GET(
 
   const { data: layer, error } = await supabase
     .from("semantic_layers")
-    .select("id, connection_id, metrics, dimensions, entities, raw_schema, generated_at, created_at, updated_at")
+    .select("id, connection_id, semantic_md, raw_schema, generated_at, created_at, updated_at")
     .eq("connection_id", connectionId)
     .limit(1)
     .single();
@@ -40,7 +38,7 @@ export async function GET(
 
 /**
  * PUT /api/connections/:id/semantic
- * Update the semantic layer (user edits)
+ * Update the semantic layer Markdown (user edits)
  */
 export async function PUT(
   req: Request,
@@ -60,18 +58,14 @@ export async function PUT(
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const updates: Record<string, unknown> = {
-    updated_at: new Date().toISOString(),
-  };
-  if (parsed.data.metrics !== undefined) updates.metrics = parsed.data.metrics;
-  if (parsed.data.dimensions !== undefined) updates.dimensions = parsed.data.dimensions;
-  if (parsed.data.entities !== undefined) updates.entities = parsed.data.entities;
-
   const { data: layer, error } = await supabase
     .from("semantic_layers")
-    .update(updates as never)
+    .update({
+      semantic_md: parsed.data.semantic_md,
+      updated_at: new Date().toISOString(),
+    } as never)
     .eq("connection_id", connectionId)
-    .select("id, connection_id, metrics, dimensions, entities, generated_at, updated_at")
+    .select("id, connection_id, semantic_md, generated_at, updated_at")
     .single();
 
   if (error) {

@@ -52,14 +52,12 @@ export async function POST(
 
     const introspectedSchema = await adapter.introspect(pool);
 
-    // 2. Run semantic generator
+    // 2. Run semantic generator (produces Markdown)
     const output = await generateSemanticFromSchema(introspectedSchema);
 
     // 3. Save to semantic_layers (insert or update)
     const payload = {
-      metrics: output.metrics,
-      dimensions: output.dimensions,
-      entities: output.entities,
+      semantic_md: output.semanticMarkdown,
       raw_schema: introspectedSchema as unknown as Record<string, unknown>,
       generated_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -78,7 +76,7 @@ export async function POST(
         .from("semantic_layers")
         .update(payload as never)
         .eq("connection_id", connectionId)
-        .select("id, connection_id, metrics, dimensions, entities, generated_at")
+        .select("id, connection_id, semantic_md, generated_at")
         .single();
       if (updateError) {
         return NextResponse.json(
@@ -91,7 +89,7 @@ export async function POST(
       const { data: inserted, error: insertError } = await supabase
         .from("semantic_layers")
         .insert({ connection_id: connectionId, ...payload } as never)
-        .select("id, connection_id, metrics, dimensions, entities, generated_at")
+        .select("id, connection_id, semantic_md, generated_at")
         .single();
       if (insertError) {
         return NextResponse.json(

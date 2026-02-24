@@ -53,18 +53,6 @@ Respond with a JSON object containing:
 - tablesTouched: Array of table names used
 - estimatedComplexity: "low", "medium", or "high"`;
 
-const SEMANTIC_BLOCK_TEMPLATE = `Semantic Layer Information:
-
-METRICS (with formulas):
-{{METRICS}}
-
-DIMENSIONS (with table/column mappings):
-{{DIMENSIONS}}
-
-RELATIONSHIPS:
-{{RELATIONSHIPS}}
-{{AD_HOC_SCHEMA}}`;
-
 function buildPreamble(dialect: string): string {
   const currentDate = new Date().toISOString().split("T")[0];
   return PREAMBLE_PROMPT
@@ -76,33 +64,13 @@ function buildSemanticBlock(
   semanticMetadata: SemanticMetadata,
   hasAdHocMetrics: boolean,
 ): string {
-  const metricsDesc = semanticMetadata.metrics
-    .map((m) => `- ${m.name}: ${m.formula}${m.grain ? ` (grain: ${m.grain})` : ""}${m.dimensions.length > 0 ? ` [dimensions: ${m.dimensions.join(", ")}]` : ""}`)
-    .join("\n");
+  let block = `## Semantic Layer Reference\n\n${semanticMetadata.semanticMarkdown}`;
 
-  const dimensionsDesc = semanticMetadata.dimensions
-    .map((d) => `- ${d.name}: ${d.table}.${d.column} (type: ${d.type})`)
-    .join("\n");
+  if (hasAdHocMetrics && semanticMetadata.rawSchemaDDL) {
+    block += `\n\n## Raw Database Schema (for ad-hoc metrics)\n${semanticMetadata.rawSchemaDDL}\n\nWhen the intent includes "adHocMetrics", use their formulas directly in the SQL.\nDetermine appropriate JOINs based on the foreign key relationships in the raw schema.\nApply the same best practices (CTEs for multi-table, GROUP BY, etc.) as for predefined metrics.`;
+  }
 
-  const relationshipsDesc =
-    semanticMetadata.relationships.length > 0
-      ? semanticMetadata.relationships
-          .map(
-            (r) =>
-              `- ${r.from.table}.${r.from.column} ${r.type} ${r.to.table}.${r.to.column} (${r.joinType ?? "inner"})`,
-          )
-          .join("\n")
-      : "No relationships defined";
-
-  const adHocSchema = hasAdHocMetrics && semanticMetadata.rawSchemaDDL
-    ? `\n\nRAW DATABASE SCHEMA (for ad-hoc metrics):\n${semanticMetadata.rawSchemaDDL}\n\nWhen the intent includes "adHocMetrics", use their formulas directly in the SQL.\nDetermine appropriate JOINs based on the foreign key relationships in the raw schema.\nApply the same best practices (CTEs for multi-table, GROUP BY, etc.) as for predefined metrics.`
-    : "";
-
-  return SEMANTIC_BLOCK_TEMPLATE
-    .replace("{{METRICS}}", metricsDesc)
-    .replace("{{DIMENSIONS}}", dimensionsDesc)
-    .replace("{{RELATIONSHIPS}}", relationshipsDesc)
-    .replace("{{AD_HOC_SCHEMA}}", adHocSchema);
+  return block;
 }
 
 function buildUserMessage(

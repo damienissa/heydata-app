@@ -1,6 +1,5 @@
 import { getPoolManager } from "@heydata/bridge";
 import { createOrchestrator } from "@heydata/core";
-import { loadRegistryFromMetadata } from "@heydata/semantic";
 import type {
   OrchestratorResponse,
   ResultSet,
@@ -55,7 +54,7 @@ export async function processQueryForConnection(
   // 2. Load semantic layer for this connection
   const { data: layer, error: layerError } = await supabase
     .from("semantic_layers")
-    .select("metrics, dimensions, entities, raw_schema")
+    .select("semantic_md, raw_schema")
     .eq("connection_id", connectionId)
     .limit(1)
     .single();
@@ -69,12 +68,9 @@ export async function processQueryForConnection(
   }
 
   const semanticRow = layer as SemanticLayerRow;
-  const registry = loadRegistryFromMetadata({
-    metrics: semanticRow.metrics,
-    dimensions: semanticRow.dimensions,
-    entities: semanticRow.entities,
-  });
-  const semanticMetadata: SemanticMetadata = registry.toSemanticMetadata();
+  const semanticMetadata: SemanticMetadata = {
+    semanticMarkdown: semanticRow.semantic_md ?? "",
+  };
 
   // Attach compact DDL of raw schema for ad-hoc metric support
   if (semanticRow.raw_schema) {

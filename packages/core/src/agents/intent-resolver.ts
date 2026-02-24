@@ -28,26 +28,20 @@ TODAY'S DATE: {{CURRENT_DATE}}
 
 Your task is to analyze the user's question and the FULL semantic layer below to determine:
 1. The type of analysis they want (trend, comparison, ranking, anomaly, drill_down, aggregation, distribution, correlation)
-2. Which metrics they want to analyze - CAREFULLY READ each metric's formula to understand what it measures
-3. Which dimensions to group by - check each metric's compatible dimensions
+2. Which metrics they want to analyze — read each metric's formula to understand what it measures
+3. Which dimensions to group by
 4. Any filters to apply
 5. Time range if specified (use ABSOLUTE dates based on today's date)
 6. Comparison mode if comparing periods
 7. Sort order and limits if applicable
 
-SEMANTIC LAYER:
+## Semantic Layer Reference
 
-METRICS (with formulas and compatible dimensions):
-{{METRICS}}
-
-DIMENSIONS (with table/column mappings):
-{{DIMENSIONS}}
+{{SEMANTIC_LAYER}}
 
 Guidelines:
 - CAREFULLY ANALYZE each metric's FORMULA to understand what it actually measures before selecting it
-- Prefer dimensions listed as compatible with the selected metrics
-- If the user explicitly requests a dimension by name (e.g. "per username", "by username") and that dimension exists in DIMENSIONS, include it even if not in the metric's compatible list - the SQL generator can join tables as needed. Use lower confidence (e.g. 0.5) in such cases rather than asking for clarification
-- Match names exactly as defined; use synonyms when user terms differ
+- Match metric/dimension names exactly as defined; use synonyms when user terms differ
 - If ambiguous, set clarificationNeeded: true with a clarificationQuestion
 - Set confidence (0.0-1.0) based on interpretation certainty
 - CRITICAL: Convert relative time expressions to ABSOLUTE dates using today ({{CURRENT_DATE}}). Example: "last 2 months" with today=2026-02-21 → timeRange: {"start": "2025-12-21", "end": "2026-02-21"}
@@ -90,34 +84,12 @@ function buildSystemPrompt(metadata: SemanticMetadata): string {
   const lastWeekStart = lastMonday.toISOString().split("T")[0]!;
   const lastWeekEnd = lastSunday.toISOString().split("T")[0]!;
 
-  const metricsDesc = metadata.metrics
-    .map(
-      (m) =>
-        `- ${m.name} (${m.displayName})
-    Description: ${m.description}
-    Formula: ${m.formula}
-    Compatible dimensions: ${m.dimensions.length > 0 ? m.dimensions.join(", ") : "all"}${m.grain ? `\n    Grain: ${m.grain}` : ""}${m.synonyms?.length ? `\n    Synonyms: ${m.synonyms.join(", ")}` : ""}`,
-    )
-    .join("\n\n");
-
-  const dimensionsDesc = metadata.dimensions
-    .map(
-      (d) =>
-        `- ${d.name} (${d.displayName}): ${d.description} [${d.table}.${d.column}, type: ${d.type}]${d.synonyms?.length ? ` [synonyms: ${d.synonyms.join(", ")}]` : ""}`,
-    )
-    .join("\n");
-
-  let prompt = SYSTEM_PROMPT
-    .replaceAll("{{CURRENT_DATE}}", currentDate!)
-    .replace("{{LAST_WEEK_START}}", lastWeekStart)
-    .replace("{{LAST_WEEK_END}}", lastWeekEnd)
-    .replace("{{METRICS}}", metricsDesc)
-    .replace("{{DIMENSIONS}}", dimensionsDesc);
+  let semanticLayer = metadata.semanticMarkdown;
 
   if (metadata.rawSchemaDDL) {
-    prompt += `
+    semanticLayer += `
 
-AD-HOC METRICS (when no predefined metric matches):
+## Ad-Hoc Metrics (when no predefined metric matches)
 If the user's question cannot be answered by any predefined metric above, you MAY define one or more ad-hoc metrics using the raw database schema below. Ad-hoc metrics must:
 - Use valid SQL aggregate formulas referencing table.column from the schema (e.g., "AVG(sessions.duration_seconds)")
 - Be placed in the "adHocMetrics" array with fields: name (snake_case), displayName, formula, tables (array of table names used), and optional description
@@ -126,11 +98,15 @@ If the user's question cannot be answered by any predefined metric above, you MA
 
 ONLY use ad-hoc metrics when predefined metrics clearly do not fit. Always prefer predefined metrics.
 
-RAW DATABASE SCHEMA:
+### Raw Database Schema
 ${metadata.rawSchemaDDL}`;
   }
 
-  return prompt;
+  return SYSTEM_PROMPT
+    .replaceAll("{{CURRENT_DATE}}", currentDate!)
+    .replace("{{LAST_WEEK_START}}", lastWeekStart)
+    .replace("{{LAST_WEEK_END}}", lastWeekEnd)
+    .replace("{{SEMANTIC_LAYER}}", semanticLayer);
 }
 
 function buildUserMessage(

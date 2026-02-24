@@ -124,21 +124,9 @@ function buildUserMessage(
   intent: IntentObject,
   semanticMetadata?: SemanticMetadata,
 ): string {
-  // Compact schema context: table names + column names only (not full DDL)
-  let schemaContext = "";
-  if (semanticMetadata) {
-    const tables = new Set<string>();
-    for (const d of semanticMetadata.dimensions) tables.add(d.table);
-    for (const r of semanticMetadata.relationships) {
-      tables.add(r.from.table);
-      tables.add(r.to.table);
-    }
-    const tableList = [...tables].join(", ");
-    const dimColumns = semanticMetadata.dimensions
-      .map((d) => `${d.table}.${d.column}`)
-      .join(", ");
-    schemaContext = `\n\nKnown tables: ${tableList}\nKnown columns: ${dimColumns}`;
-  }
+  const schemaContext = semanticMetadata
+    ? `\n\n## Semantic Layer Reference\n\n${semanticMetadata.semanticMarkdown}`
+    : "";
 
   return `Validate the following SQL query:
 

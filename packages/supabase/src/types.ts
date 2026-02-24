@@ -152,34 +152,28 @@ export type Database = {
         Row: {
           connection_id: string
           created_at: string | null
-          dimensions: Json
-          entities: Json
           generated_at: string | null
           id: string
-          metrics: Json
           raw_schema: Json | null
+          semantic_md: string
           updated_at: string | null
         }
         Insert: {
           connection_id: string
           created_at?: string | null
-          dimensions?: Json
-          entities?: Json
           generated_at?: string | null
           id?: string
-          metrics?: Json
           raw_schema?: Json | null
+          semantic_md?: string
           updated_at?: string | null
         }
         Update: {
           connection_id?: string
           created_at?: string | null
-          dimensions?: Json
-          entities?: Json
           generated_at?: string | null
           id?: string
-          metrics?: Json
           raw_schema?: Json | null
+          semantic_md?: string
           updated_at?: string | null
         }
         Relationships: [

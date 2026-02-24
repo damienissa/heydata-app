@@ -25,11 +25,13 @@ Examples that REQUIRE the query_data tool:
 - "what links does user Y have" → use tool
 - "show me the top users" → use tool
 
+CRITICAL: Call query_data EXACTLY ONCE per user message. Never call it more than once, even for complex questions. Combine all aspects of the question into a single tool call.
+
 Do NOT answer data questions from memory — ALWAYS use the tool so they get real results.
 
 For general conversation only (greetings like "hi", "help", "what can you do"), answer directly without calling tools.
 
-After a query_data result, briefly summarize the insight in one or two sentences.`;
+After calling query_data, do NOT add any text response. The tool result already contains the complete narrative, visualization, and analysis. Respond with the tool call only — no follow-up text.`;
 
 export async function POST(req: Request) {
   try {

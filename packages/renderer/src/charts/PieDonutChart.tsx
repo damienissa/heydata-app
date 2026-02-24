@@ -49,8 +49,23 @@ export function PieDonutChart({
   const { legend, title, chartConfig } = spec;
 
   const config = chartConfig as PieConfig | undefined;
-  const nameKey = config?.nameKey ?? spec.xAxis?.dataKey ?? "name";
-  const valueKey = config?.valueKey ?? spec.series[0]?.dataKey ?? "value";
+
+  // Auto-detect keys from data when chartConfig keys are missing or don't match actual columns
+  const firstRow = data[0] ?? {};
+  const columnKeys = Object.keys(firstRow);
+  const numericKeys = columnKeys.filter((k) => typeof firstRow[k] === "number");
+  const stringKeys = columnKeys.filter((k) => typeof firstRow[k] === "string");
+
+  const nameKey =
+    config?.nameKey && columnKeys.includes(config.nameKey)
+      ? config.nameKey
+      : (stringKeys[0] ?? spec.xAxis?.dataKey ?? columnKeys.find((k) => !numericKeys.includes(k)) ?? "name");
+
+  const valueKey =
+    config?.valueKey && columnKeys.includes(config.valueKey)
+      ? config.valueKey
+      : (numericKeys[0] ?? spec.series[0]?.dataKey ?? "value");
+
   const isDonut = spec.chartType === "donut";
   const innerRadius = config?.innerRadius ?? (isDonut ? "60%" : 0);
   const outerRadius = config?.outerRadius ?? "80%";

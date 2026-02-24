@@ -34,10 +34,6 @@ export function dbMessageToUIMessage(msg: DbMessage): {
       }
   > = [];
 
-  if (msg.content && msg.content.trim()) {
-    parts.push({ type: "text", text: msg.content });
-  }
-
   if (msg.role === "assistant" && msg.tool_results) {
     const invocations = Array.isArray(msg.tool_results) ? msg.tool_results : [msg.tool_results];
     for (const inv of invocations) {
@@ -63,6 +59,10 @@ export function dbMessageToUIMessage(msg: DbMessage): {
         }
       }
     }
+  }
+
+  if (msg.content && msg.content.trim()) {
+    parts.push({ type: "text", text: msg.content });
   }
 
   if (parts.length === 0) {

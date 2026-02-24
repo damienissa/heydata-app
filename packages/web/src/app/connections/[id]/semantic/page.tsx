@@ -305,21 +305,33 @@ export default function SemanticEditorPage() {
             setMarkdown(md);
             setSavedMarkdown(md);
 
-            if (Array.isArray(d.commands)) {
-              const newCmds = (
-                d.commands as Array<{
-                  slashCommand: string;
-                  description: string;
-                  prompt: string;
-                }>
-              ).map((c, i) => ({
-                _key: `gen_${i}`,
-                slashCommand: c.slashCommand,
-                description: c.description,
-                prompt: c.prompt,
-              }));
-              setCommands(newCmds);
-              setSavedCommands(newCmds);
+            setProgressStep("commands");
+            try {
+              const cmdRes = await fetch(
+                `/api/connections/${connectionId}/commands/generate`,
+                { method: "POST" },
+              );
+              if (cmdRes.ok) {
+                const cmdData = await cmdRes.json();
+                if (Array.isArray(cmdData.commands)) {
+                  const newCmds = (
+                    cmdData.commands as Array<{
+                      slashCommand: string;
+                      description: string;
+                      prompt: string;
+                    }>
+                  ).map((c, i) => ({
+                    _key: `gen_${i}`,
+                    slashCommand: c.slashCommand,
+                    description: c.description,
+                    prompt: c.prompt,
+                  }));
+                  setCommands(newCmds);
+                  setSavedCommands(newCmds);
+                }
+              }
+            } catch {
+              // non-fatal: commands failure should not block semantic regeneration
             }
           } else if (event === "error") {
             throw new Error((d.message as string) ?? "Regeneration failed.");

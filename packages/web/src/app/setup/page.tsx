@@ -157,6 +157,10 @@ export default function SetupPage() {
             setProgressStep(d.step as ProgressStep);
           } else if (event === "complete") {
             setSemanticMarkdown((d.semantic_md as string) ?? "");
+            setProgressStep("commands");
+            await fetch(`/api/connections/${connectionId}/commands/generate`, {
+              method: "POST",
+            }).catch(() => {});
             setStep(4);
           } else if (event === "error") {
             throw new Error((d.message as string) ?? "Generation failed.");

@@ -273,6 +273,7 @@ export class Orchestrator {
           context,
           intent: intentResult.data,
           resultSet,
+          semanticMd: input.semanticMetadata.semanticMarkdown,
         }),
       ]);
 

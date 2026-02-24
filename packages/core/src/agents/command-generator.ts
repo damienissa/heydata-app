@@ -63,65 +63,47 @@ Include the chart type in the prompt so the AI chooses the right visualisation. 
 - "…render as a funnel chart"
 - "…use a bar chart sorted descending"
 
-## Output format
-
-Output ONLY valid JSON — an array of objects. Example:
-[
-  {
-    "slashCommand": "showMRR",
-    "description": "Show Monthly Recurring Revenue with trend",
-    "prompt": "What is our current Monthly Recurring Revenue? Show it as a KPI card with the value and a comparison to last month, plus a line chart of MRR over the past 12 months."
-  }
-]
-
 Rules:
 - No duplicate slashCommand values
 - slashCommand must match /^[a-zA-Z][a-zA-Z0-9_]*$/
 - Prompts should be natural questions, not SQL
 - Prefer metrics explicitly listed in the ## Metrics section
 - Each prompt should mention a specific chart type from the table above
-- Output only the JSON array, no markdown fences, no extra text`;
+- Call the save_commands tool with the generated commands`;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Tool definition for structured output ─────────────────────────────────────
 
-/**
- * Finds the first JSON array in `text` using a string-aware bracket scanner.
- * Correctly handles '[' / ']' that appear inside string values or after the array.
- */
-function extractJsonArray(text: string): string | null {
-  const start = text.indexOf("[");
-  if (start === -1) return null;
-
-  let depth = 0;
-  let inString = false;
-  let escape = false;
-
-  for (let i = start; i < text.length; i++) {
-    const ch = text[i];
-
-    if (escape) {
-      escape = false;
-      continue;
-    }
-    if (ch === "\\" && inString) {
-      escape = true;
-      continue;
-    }
-    if (ch === '"') {
-      inString = !inString;
-      continue;
-    }
-    if (inString) continue;
-
-    if (ch === "[") depth++;
-    else if (ch === "]") {
-      depth--;
-      if (depth === 0) return text.slice(start, i + 1);
-    }
-  }
-
-  return null;
-}
+const COMMANDS_TOOL = {
+  name: "save_commands",
+  description: "Save the generated slash commands",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      commands: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            slashCommand: {
+              type: "string",
+              description: "camelCase or underscore_case command name, no leading slash",
+            },
+            description: {
+              type: "string",
+              description: "Short description shown in the picker, max 80 chars",
+            },
+            prompt: {
+              type: "string",
+              description: "Full prompt sent to the chat when the command is selected",
+            },
+          },
+          required: ["slashCommand", "description", "prompt"],
+        },
+      },
+    },
+    required: ["commands"],
+  },
+};
 
 // ── Agent ─────────────────────────────────────────────────────────────────────
 
@@ -139,6 +121,8 @@ export async function generateCommands(
         model: context.fastModel,
         max_tokens: 2048,
         system: SYSTEM_PROMPT,
+        tools: [COMMANDS_TOOL],
+        tool_choice: { type: "tool", name: "save_commands" },
         messages: [
           {
             role: "user",
@@ -154,49 +138,19 @@ export async function generateCommands(
       `[command-generator] Complete — input: ${inputTokens} tokens, output: ${outputTokens} tokens`,
     );
 
-    const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
-      throw new HeyDataError("COMMAND_GENERATION_FAILED", "Command generator returned no text", {
-        agent: "command_generator",
-      });
-    }
-
-    // Extract the JSON array from the response.
-    // The model may prepend prose or wrap the array in code fences, and prompts
-    // can contain '[' / ']' inside string values. We use a string-aware bracket
-    // scanner to find the matching ']' for the first '['.
-    const fullText = textBlock.text;
-
-    const jsonArray = extractJsonArray(fullText);
-
-    let rawCommands: unknown;
-    if (jsonArray === null) {
-      console.error("[command-generator] Raw output:", fullText.slice(0, 500));
+    // With tool_choice forced to "save_commands", the SDK guarantees a tool_use block
+    // with input already parsed as JSON — no text extraction or JSON.parse needed.
+    const toolBlock = response.content.find((b) => b.type === "tool_use");
+    if (!toolBlock || toolBlock.type !== "tool_use") {
       throw new HeyDataError(
         "COMMAND_GENERATION_FAILED",
-        "Command generator returned no JSON array",
+        "Command generator returned no tool_use block",
         { agent: "command_generator" },
       );
     }
 
-    try {
-      rawCommands = JSON.parse(jsonArray);
-    } catch {
-      console.error("[command-generator] Raw output:", jsonArray.slice(0, 500));
-      throw new HeyDataError(
-        "COMMAND_GENERATION_FAILED",
-        "Command generator returned invalid JSON",
-        { agent: "command_generator" },
-      );
-    }
-
-    if (!Array.isArray(rawCommands)) {
-      throw new HeyDataError(
-        "COMMAND_GENERATION_FAILED",
-        "Command generator did not return an array",
-        { agent: "command_generator" },
-      );
-    }
+    const rawInput = toolBlock.input as { commands?: unknown[] };
+    const rawCommands = rawInput.commands ?? [];
 
     const commands: GeneratedCommand[] = [];
     for (const item of rawCommands) {

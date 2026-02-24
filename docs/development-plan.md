@@ -310,3 +310,34 @@ Update all docs to define the target architecture for universal, database-agnost
 - [x] Narrative: thread original question, truncation note guidance, bullet-vs-prose rule
 - [x] Viz planner: replace spec dump with ordered decision tree (10-step priority logic)
 - [x] Graceful degradation: analyzer/viz-planner failures return fallback values instead of crashing pipeline
+
+---
+
+## Phase 18 — Markdown Semantic Layer
+
+Replace the rigid JSONB semantic layer with a human-readable Markdown document stored in `semantic_layers.semantic_md`. The document is auto-generated from schema introspection, freely editable by users to add domain knowledge, and injected as a persistent instruction set into every AI agent request.
+
+### 18a — Documentation
+
+- [ ] `docs/semantic-layer.md` — Rewrite to describe Markdown format, document structure, editing flow, and updated registry/loading model
+- [ ] `docs/development-plan.md` — Add Phase 18
+
+### 18b — Core Refactor (DB + Types + Backend)
+
+- [ ] New migration: drop `metrics JSONB`, `dimensions JSONB`, `entities JSONB`; add `semantic_md TEXT NOT NULL DEFAULT ''` to `semantic_layers`
+- [ ] `packages/supabase/src/types.ts` — Update `semantic_layers` DB type (remove JSONB fields, add `semantic_md: string`)
+- [ ] `packages/shared/src/types/semantic.ts` — Simplify `SemanticMetadata` to `{ semanticMarkdown: string; rawSchemaDDL?: string }`
+- [ ] `packages/semantic/src/registry.ts` + `loader.ts` — Simplify registry to store/return Markdown string; remove structured lookup maps
+- [ ] `packages/core/src/agents/semantic-generator.ts` — New Markdown-output prompt; remove JSON parsing, normalization, Zod validation
+- [ ] `packages/core/src/agents/intent-resolver.ts` — Inject `semanticMarkdown` as a context block (replaces structured metadata iteration)
+- [ ] `packages/core/src/agents/sql-generator.ts` — Inject `semanticMarkdown` as context block (keep `cache_control: ephemeral`)
+- [ ] `packages/core/src/agents/sql-validator.ts` — Inject `semanticMarkdown` as context block
+- [ ] `packages/web/src/lib/process-query-for-connection.ts` — Load `semantic_md`; build `SemanticMetadata` with `semanticMarkdown` field
+- [ ] `packages/web/src/app/api/connections/[id]/semantic/route.ts` — GET/PUT for `semantic_md`
+- [ ] `packages/web/src/app/api/connections/[id]/semantic/generate/route.ts` — Save Markdown output instead of JSONB payload
+- [ ] Update onboarding wizard semantic preview to render Markdown
+
+### 18c — Settings UI
+
+- [ ] `packages/web/src/app/connections/[id]/semantic/page.tsx` — New split-view editor (textarea + rendered Markdown preview, Save + Regenerate actions)
+- [ ] Add "Semantic Layer" navigation link from connection header or settings area

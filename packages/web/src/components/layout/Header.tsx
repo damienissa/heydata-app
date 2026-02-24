@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlusIcon, Settings2Icon, Trash2Icon } from "lucide-react";
+import { BookTextIcon, PlusIcon, Settings2Icon, Trash2Icon } from "lucide-react";
 
 interface HeaderProps {
   connections?: Connection[];
@@ -109,16 +109,31 @@ export function Header({
                     className="flex items-center justify-between rounded-lg border px-3 py-2"
                   >
                     <span className="text-sm font-medium">{c.name}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => handleDelete(c.id)}
-                      disabled={deletingId === c.id}
-                      aria-label={`Delete ${c.name}`}
-                    >
-                      <Trash2Icon className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={`/connections/${c.id}/semantic`}
+                        onClick={() => setManageOpen(false)}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-foreground"
+                          aria-label={`Edit semantic layer for ${c.name}`}
+                        >
+                          <BookTextIcon className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => handleDelete(c.id)}
+                        disabled={deletingId === c.id}
+                        aria-label={`Delete ${c.name}`}
+                      >
+                        <Trash2Icon className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))
               )}

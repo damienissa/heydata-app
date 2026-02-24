@@ -339,5 +339,5 @@ Replace the rigid JSONB semantic layer with a human-readable Markdown document s
 
 ### 18c — Settings UI
 
-- [ ] `packages/web/src/app/connections/[id]/semantic/page.tsx` — New split-view editor (textarea + rendered Markdown preview, Save + Regenerate actions)
-- [ ] Add "Semantic Layer" navigation link from connection header or settings area
+- [x] `packages/web/src/app/connections/[id]/semantic/page.tsx` — New split-view editor (textarea + rendered Markdown preview, Save + Regenerate actions)
+- [x] Add "Semantic Layer" navigation link from connection header or settings area (book icon in Manage connections dialog)

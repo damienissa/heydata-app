@@ -73,17 +73,20 @@ function toResultSet(
     displayName: field.name,
   }));
 
-  // Convert rows
+  // Convert rows – use column type metadata to coerce values.
+  // node-pg returns bigint (int8) and numeric as JS strings, so we must
+  // parse them into numbers when the column type is known to be "number".
   const rows: Row[] = result.rows.map((row: Record<string, unknown>) => {
     const converted: Row = {};
     for (const col of columns) {
       const value = row[col.name];
       if (value === null || value === undefined) {
         converted[col.name] = null;
-      } else if (typeof value === "boolean") {
-        converted[col.name] = value;
-      } else if (typeof value === "number") {
-        converted[col.name] = value;
+      } else if (col.type === "number") {
+        const num = Number(value);
+        converted[col.name] = Number.isNaN(num) ? null : num;
+      } else if (col.type === "boolean") {
+        converted[col.name] = typeof value === "boolean" ? value : value === "true" || value === "t";
       } else if (value instanceof Date) {
         converted[col.name] = value.toISOString();
       } else {

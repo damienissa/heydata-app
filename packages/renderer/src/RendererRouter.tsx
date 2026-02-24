@@ -17,6 +17,7 @@ import {
 } from "./charts/index.js";
 import { DataTable, KpiCard } from "./components/index.js";
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH } from "./types.js";
+import { normalizeData } from "./utils/normalize-data.js";
 
 export interface RendererRouterProps {
   spec: VisualizationSpec;
@@ -32,12 +33,15 @@ export interface RendererRouterProps {
  */
 export function RendererRouter({
   spec,
-  data,
+  data: rawData,
   columns,
   width = DEFAULT_WIDTH,
   height = DEFAULT_HEIGHT,
   className,
 }: RendererRouterProps) {
+  // Ensure numeric columns contain actual JS numbers (not strings from SQL drivers)
+  const data = normalizeData(rawData, columns);
+
   switch (spec.chartType) {
     case "line":
       return (

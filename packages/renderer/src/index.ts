@@ -29,3 +29,4 @@ export {
   type ChartProps,
 } from "./types.js";
 export { interpolateColor } from "./utils/color-scales.js";
+export { normalizeData } from "./utils/normalize-data.js";

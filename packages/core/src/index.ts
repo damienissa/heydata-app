@@ -17,7 +17,6 @@ export {
   generateNarrative,
   generateSemantic,
   generateSemanticFromSchema,
-  toSemanticMetadata,
   type IntentResolverInput,
   type SqlGeneratorInput,
   type SqlValidatorInput,

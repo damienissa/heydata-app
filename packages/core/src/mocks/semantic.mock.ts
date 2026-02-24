@@ -5,153 +5,86 @@ import type { SemanticMetadata } from "@heydata/shared";
  * Represents a typical e-commerce analytics setup
  */
 export const mockSemanticMetadata: SemanticMetadata = {
-  metrics: [
-    {
-      name: "revenue",
-      displayName: "Revenue",
-      description: "Total revenue from completed orders",
-      formula: "SUM(orders.total_amount)",
-      grain: "daily",
-      dimensions: ["date", "product_category", "region", "customer_segment"],
-      synonyms: ["sales", "income", "total sales"],
-      formatting: {
-        type: "currency",
-        currencyCode: "USD",
-        decimalPlaces: 2,
-      },
-    },
-    {
-      name: "order_count",
-      displayName: "Order Count",
-      description: "Number of completed orders",
-      formula: "COUNT(DISTINCT orders.order_id)",
-      grain: "daily",
-      dimensions: ["date", "product_category", "region", "customer_segment"],
-      synonyms: ["orders", "transactions", "number of orders"],
-      formatting: {
-        type: "number",
-        decimalPlaces: 0,
-      },
-    },
-    {
-      name: "average_order_value",
-      displayName: "Average Order Value",
-      description: "Average value per order",
-      formula: "SUM(orders.total_amount) / COUNT(DISTINCT orders.order_id)",
-      grain: "daily",
-      dimensions: ["date", "product_category", "region", "customer_segment"],
-      synonyms: ["AOV", "avg order", "average transaction"],
-      formatting: {
-        type: "currency",
-        currencyCode: "USD",
-        decimalPlaces: 2,
-      },
-    },
-    {
-      name: "customer_count",
-      displayName: "Unique Customers",
-      description: "Number of unique customers who placed orders",
-      formula: "COUNT(DISTINCT orders.customer_id)",
-      grain: "daily",
-      dimensions: ["date", "region", "customer_segment"],
-      synonyms: ["customers", "unique buyers", "buyers"],
-      formatting: {
-        type: "number",
-        decimalPlaces: 0,
-      },
-    },
-    {
-      name: "conversion_rate",
-      displayName: "Conversion Rate",
-      description: "Percentage of sessions that resulted in a purchase",
-      formula: "COUNT(DISTINCT orders.order_id) / COUNT(DISTINCT sessions.session_id) * 100",
-      grain: "daily",
-      dimensions: ["date", "region", "traffic_source"],
-      synonyms: ["cvr", "purchase rate"],
-      formatting: {
-        type: "percentage",
-        decimalPlaces: 2,
-      },
-    },
-  ],
-  dimensions: [
-    {
-      name: "date",
-      displayName: "Date",
-      description: "Order date",
-      table: "orders",
-      column: "order_date",
-      type: "date",
-      synonyms: ["day", "order date", "time"],
-    },
-    {
-      name: "product_category",
-      displayName: "Product Category",
-      description: "Main product category",
-      table: "products",
-      column: "category",
-      type: "string",
-      synonyms: ["category", "product type"],
-    },
-    {
-      name: "region",
-      displayName: "Region",
-      description: "Customer geographic region",
-      table: "customers",
-      column: "region",
-      type: "string",
-      synonyms: ["geography", "location", "area"],
-    },
-    {
-      name: "customer_segment",
-      displayName: "Customer Segment",
-      description: "Customer segmentation tier",
-      table: "customers",
-      column: "segment",
-      type: "string",
-      synonyms: ["segment", "tier", "customer type"],
-    },
-    {
-      name: "traffic_source",
-      displayName: "Traffic Source",
-      description: "Marketing channel that drove the session",
-      table: "sessions",
-      column: "traffic_source",
-      type: "string",
-      synonyms: ["channel", "source", "utm_source"],
-    },
-  ],
-  relationships: [
-    {
-      from: { table: "orders", column: "customer_id" },
-      to: { table: "customers", column: "customer_id" },
-      type: "one-to-many",
-      joinType: "left",
-    },
-    {
-      from: { table: "order_items", column: "order_id" },
-      to: { table: "orders", column: "order_id" },
-      type: "one-to-many",
-      joinType: "inner",
-    },
-    {
-      from: { table: "order_items", column: "product_id" },
-      to: { table: "products", column: "product_id" },
-      type: "one-to-many",
-      joinType: "left",
-    },
-    {
-      from: { table: "sessions", column: "customer_id" },
-      to: { table: "customers", column: "customer_id" },
-      type: "one-to-many",
-      joinType: "left",
-    },
-  ],
-  synonyms: {
-    revenue: ["sales", "income", "earnings", "total sales"],
-    orders: ["transactions", "purchases"],
-    customers: ["buyers", "users", "clients"],
-  },
+  semanticMarkdown: `# Semantic Layer
+
+## Overview
+E-commerce analytics database tracking orders, customers, products, and sessions.
+
+## Tables
+
+### orders
+**Purpose**: Completed customer orders | **Primary Key**: \`order_id\`
+**Columns**: \`order_id\` (uuid PK), \`customer_id\` (uuid FK→customers), \`total_amount\` (numeric), \`order_date\` (date), \`status\` (text)
+
+### customers
+**Purpose**: Customer profiles and segmentation | **Primary Key**: \`customer_id\`
+**Columns**: \`customer_id\` (uuid PK), \`region\` (text), \`segment\` (text), \`email\` (text), \`created_at\` (timestamptz)
+
+### order_items
+**Purpose**: Line items within each order | **Primary Key**: \`item_id\`
+**Columns**: \`item_id\` (uuid PK), \`order_id\` (uuid FK→orders), \`product_id\` (uuid FK→products), \`quantity\` (integer), \`unit_price\` (numeric)
+
+### products
+**Purpose**: Product catalog | **Primary Key**: \`product_id\`
+**Columns**: \`product_id\` (uuid PK), \`name\` (text), \`category\` (text), \`price\` (numeric)
+
+### sessions
+**Purpose**: Website sessions and traffic attribution | **Primary Key**: \`session_id\`
+**Columns**: \`session_id\` (uuid PK), \`customer_id\` (uuid FK→customers), \`traffic_source\` (text), \`duration_seconds\` (integer), \`started_at\` (timestamptz)
+
+## Metrics
+
+### revenue
+- **Formula**: \`SUM(orders.total_amount)\`
+- **Description**: Total revenue from completed orders
+- **Synonyms**: sales, income, total sales
+
+### order_count
+- **Formula**: \`COUNT(DISTINCT orders.order_id)\`
+- **Description**: Number of completed orders
+- **Synonyms**: orders, transactions, number of orders
+
+### average_order_value
+- **Formula**: \`SUM(orders.total_amount) / COUNT(DISTINCT orders.order_id)\`
+- **Description**: Average value per order
+- **Synonyms**: AOV, avg order, average transaction
+
+### customer_count
+- **Formula**: \`COUNT(DISTINCT orders.customer_id)\`
+- **Description**: Number of unique customers who placed orders
+- **Synonyms**: customers, unique buyers, buyers
+
+### conversion_rate
+- **Formula**: \`COUNT(DISTINCT orders.order_id) / COUNT(DISTINCT sessions.session_id) * 100\`
+- **Description**: Percentage of sessions that resulted in a purchase
+- **Synonyms**: cvr, purchase rate
+
+## Dimensions
+
+### date
+- **Source**: \`orders.order_date\` | **Type**: date | **Synonyms**: day, order date, time
+
+### product_category
+- **Source**: \`products.category\` | **Type**: string | **Synonyms**: category, product type
+
+### region
+- **Source**: \`customers.region\` | **Type**: string | **Synonyms**: geography, location, area
+
+### customer_segment
+- **Source**: \`customers.segment\` | **Type**: string | **Synonyms**: segment, tier, customer type
+
+### traffic_source
+- **Source**: \`sessions.traffic_source\` | **Type**: string | **Synonyms**: channel, source, utm_source
+
+## Relationships
+- \`orders\` → \`customers\`: many-to-one via \`orders.customer_id = customers.customer_id\`
+- \`order_items\` → \`orders\`: many-to-one via \`order_items.order_id = orders.order_id\`
+- \`order_items\` → \`products\`: many-to-one via \`order_items.product_id = products.product_id\`
+- \`sessions\` → \`customers\`: many-to-one via \`sessions.customer_id = customers.customer_id\`
+
+## Domain Knowledge
+<!-- Add business context, rules, or notes here -->
+`,
   rawSchemaDDL: `orders(order_id uuid PK, customer_id uuid FK->customers.customer_id, total_amount numeric NOT NULL, order_date date NOT NULL, status text)
 customers(customer_id uuid PK, region text, segment text, email text, created_at timestamptz)
 order_items(item_id uuid PK, order_id uuid FK->orders.order_id, product_id uuid FK->products.product_id, quantity integer NOT NULL, unit_price numeric NOT NULL)

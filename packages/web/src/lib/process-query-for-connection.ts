@@ -1,6 +1,6 @@
+import { decryptConnectionString } from "@/lib/crypto";
 import { getPoolManager } from "@heydata/bridge";
 import { createOrchestrator } from "@heydata/core";
-import { decryptConnectionString } from "@/lib/crypto";
 import type {
   OrchestratorResponse,
   ResultSet,
@@ -12,8 +12,8 @@ import {
   IntrospectedSchemaSchema,
   introspectedSchemaToDDL,
 } from "@heydata/shared";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@heydata/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type ConnectionRow = Database["public"]["Tables"]["connections"]["Row"];
 type SemanticLayerRow = Database["public"]["Tables"]["semantic_layers"]["Row"];
@@ -110,18 +110,18 @@ export async function processQueryForConnection(
   // 4. Build session context for follow-ups
   const sessionContext: SessionContext | undefined = sessionId
     ? {
-        sessionId,
-        turns: [],
-        activeMetrics: [],
-        activeDimensions: [],
-        activeFilters: [],
-      }
+      sessionId,
+      turns: [],
+      activeMetrics: [],
+      activeDimensions: [],
+      activeFilters: [],
+    }
     : undefined;
 
   // 5. Run orchestrator
   const orchestrator = createOrchestrator({
     apiKey: process.env.ANTHROPIC_API_KEY ?? "",
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     dialect: "postgresql",
     enableCache: true,
   });

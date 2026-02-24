@@ -13,16 +13,16 @@ import {
   type WarehouseDialect,
 } from "@heydata/shared";
 import {
-  resolveIntent,
-  generateSql,
-  validateSql,
-  validateData,
   analyzeData,
-  planVisualization,
   generateNarrative,
+  generateSql,
+  planVisualization,
+  resolveIntent,
+  validateData,
+  validateSql,
 } from "./agents/index.js";
-import type { AgentContext } from "./types.js";
 import { QueryCache } from "./cache.js";
+import type { AgentContext } from "./types.js";
 
 /**
  * Configuration for the orchestrator
@@ -66,7 +66,7 @@ export interface OrchestratorInput {
  * Default configuration values
  */
 const DEFAULT_CONFIG: Required<Omit<OrchestratorConfig, "apiKey">> = {
-  model: "claude-sonnet-4-20250514",
+  model: "claude-haiku-4-5-20251001",
   fastModel: "claude-haiku-4-5-20251001",
   dialect: "postgresql",
   maxSqlRetries: 3,
@@ -280,43 +280,43 @@ export class Orchestrator {
         analysisSettled.status === "fulfilled"
           ? analysisSettled.value
           : (() => {
-              console.error("[Step 6] DATA ANALYSIS - FAILED:", analysisSettled.reason);
-              return {
-                data: [] as InsightAnnotation[],
-                trace: {
-                  agent: "data_analyzer" as const,
-                  startedAt: new Date().toISOString(),
-                  completedAt: new Date().toISOString(),
-                  durationMs: 0,
-                  inputTokens: 0,
-                  outputTokens: 0,
-                  model: context.model,
-                  success: false,
-                  error: String(analysisSettled.reason),
-                },
-              };
-            })();
+            console.error("[Step 6] DATA ANALYSIS - FAILED:", analysisSettled.reason);
+            return {
+              data: [] as InsightAnnotation[],
+              trace: {
+                agent: "data_analyzer" as const,
+                startedAt: new Date().toISOString(),
+                completedAt: new Date().toISOString(),
+                durationMs: 0,
+                inputTokens: 0,
+                outputTokens: 0,
+                model: context.model,
+                success: false,
+                error: String(analysisSettled.reason),
+              },
+            };
+          })();
 
       const vizResult: { data: VisualizationSpec; trace: AgentTrace } =
         vizSettled.status === "fulfilled"
           ? vizSettled.value
           : (() => {
-              console.error("[Step 7] VISUALIZATION PLANNING - FAILED:", vizSettled.reason);
-              return {
-                data: { chartType: "table" as const, series: [] } satisfies VisualizationSpec,
-                trace: {
-                  agent: "viz_planner" as const,
-                  startedAt: new Date().toISOString(),
-                  completedAt: new Date().toISOString(),
-                  durationMs: 0,
-                  inputTokens: 0,
-                  outputTokens: 0,
-                  model: context.model,
-                  success: false,
-                  error: String(vizSettled.reason),
-                },
-              };
-            })();
+            console.error("[Step 7] VISUALIZATION PLANNING - FAILED:", vizSettled.reason);
+            return {
+              data: { chartType: "table" as const, series: [] } satisfies VisualizationSpec,
+              trace: {
+                agent: "viz_planner" as const,
+                startedAt: new Date().toISOString(),
+                completedAt: new Date().toISOString(),
+                durationMs: 0,
+                inputTokens: 0,
+                outputTokens: 0,
+                model: context.model,
+                success: false,
+                error: String(vizSettled.reason),
+              },
+            };
+          })();
 
       agentTraces.push(analysisResult.trace, vizResult.trace);
       console.log("[Step 6+7 parallel] DATA ANALYSIS + VISUALIZATION PLANNING - Complete");

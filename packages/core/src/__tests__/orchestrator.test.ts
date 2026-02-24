@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Orchestrator } from "../orchestrator.js";
+import type { GeneratedSQL, InsightAnnotation, IntentObject, ResultSet, VisualizationSpec } from "@heydata/shared";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockSemanticMetadata } from "../mocks/semantic.mock.js";
-import type { ResultSet, IntentObject, GeneratedSQL, InsightAnnotation, VisualizationSpec } from "@heydata/shared";
+import { Orchestrator } from "../orchestrator.js";
 
 // Mock the Anthropic SDK
 vi.mock("@anthropic-ai/sdk", () => {
@@ -103,7 +103,7 @@ describe("Orchestrator", () => {
             type: "message",
             role: "assistant",
             content: [{ type: "text", text: response }],
-            model: "claude-sonnet-4-20250514",
+            model: "claude-haiku-4-5-20251001",
             stop_reason: "end_turn",
             stop_sequence: null,
             usage: { input_tokens: 100, output_tokens: 50 },
@@ -161,7 +161,7 @@ describe("Orchestrator", () => {
           type: "message",
           role: "assistant",
           content: [{ type: "text", text: JSON.stringify(clarificationIntent) }],
-          model: "claude-sonnet-4-20250514",
+          model: "claude-haiku-4-5-20251001",
           stop_reason: "end_turn",
           stop_sequence: null,
           usage: { input_tokens: 100, output_tokens: 50 },
@@ -262,7 +262,7 @@ describe("Orchestrator Cache", () => {
             type: "message",
             role: "assistant",
             content: [{ type: "text", text: responses[(callCount - 1) % responses.length] }],
-            model: "claude-sonnet-4-20250514",
+            model: "claude-haiku-4-5-20251001",
             stop_reason: "end_turn",
             stop_sequence: null,
             usage: { input_tokens: 100, output_tokens: 50 },

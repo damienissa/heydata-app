@@ -1,11 +1,11 @@
 export const maxDuration = 300;
 
-import { anthropic } from "@ai-sdk/anthropic";
-import { convertToModelMessages, streamText, stepCountIs, tool, type UIMessage } from "ai";
-import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { processQueryForConnection } from "@/lib/process-query-for-connection";
+import { createClient } from "@/lib/supabase/server";
+import { anthropic } from "@ai-sdk/anthropic";
 import type { OrchestratorResponse } from "@heydata/shared";
+import { convertToModelMessages, stepCountIs, streamText, tool, type UIMessage } from "ai";
+import { z } from "zod";
 
 const SYSTEM_PROMPT = `You are HeyData, an AI assistant that helps users analyze their data.
 
@@ -150,7 +150,7 @@ export async function POST(req: Request) {
     }
 
     const result = streamText({
-      model: anthropic("claude-sonnet-4-20250514"),
+      model: anthropic("claude-haiku-4-5-20251001"),
       system: SYSTEM_PROMPT,
       messages: modelMessages,
       tools: { query_data: queryDataTool },

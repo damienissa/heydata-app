@@ -362,7 +362,7 @@ Encrypt `connections.connection_string` with AES-256-GCM before writing to Supab
 
 ## Phase 20 — Tiered Model Strategy
 
-Use `claude-haiku-4-5-20251001` for lightweight structured agents and keep `claude-sonnet-4-20250514` for complex reasoning agents. Reduces per-request latency ~40-50% on steps 1, 3, 4, and viz-planner.
+Use `claude-haiku-4-5-20251001` for lightweight structured agents and keep `claude-haiku-4-5-20251001` for complex reasoning agents. Reduces per-request latency ~40-50% on steps 1, 3, 4, and viz-planner.
 
 - [x] Add `fastModel` field to `AgentContext` in `packages/core/src/types.ts`
 - [x] Add `fastModel?: string` to `OrchestratorConfig` + `DEFAULT_CONFIG` in `packages/core/src/orchestrator.ts`

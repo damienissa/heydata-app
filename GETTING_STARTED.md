@@ -225,6 +225,7 @@ CREATE TABLE customers (
 Create these definitions:
 
 **metrics/revenue.yml:**
+
 ```yaml
 name: revenue
 displayName: Revenue
@@ -239,6 +240,7 @@ formatting:
 ```
 
 **dimensions/date.yml:**
+
 ```yaml
 name: date
 displayName: Date
@@ -250,6 +252,7 @@ synonyms: [day, time, when]
 ```
 
 **dimensions/region.yml:**
+
 ```yaml
 name: region
 displayName: Region
@@ -261,6 +264,7 @@ synonyms: [location, area, geography]
 ```
 
 **entities/orders.yml:**
+
 ```yaml
 name: orders
 table: orders
@@ -309,7 +313,7 @@ const executeQuery = createExecutor(pool, {
 // Create orchestrator
 const orchestrator = createOrchestrator({
   apiKey: process.env.ANTHROPIC_API_KEY ?? "",
-  model: "claude-sonnet-4-20250514",
+  model: "claude-haiku-4-5-20251001",
   dialect: "postgresql",
 });
 
@@ -402,7 +406,7 @@ pnpm start
 
 ### 5.3 Open the App
 
-Go to http://localhost:3000 and try asking:
+Go to <http://localhost:3000> and try asking:
 
 - "Show me revenue for the last 30 days"
 - "What's our average order value by region?"
@@ -415,6 +419,7 @@ Go to http://localhost:3000 and try asking:
 ### "Metric not found" Error
 
 The AI couldn't match your question to a defined metric. Check:
+
 1. Metric name in YAML matches what the AI is looking for
 2. Add more synonyms to help matching
 3. Make the description clearer
@@ -422,6 +427,7 @@ The AI couldn't match your question to a defined metric. Check:
 ### "Connection failed" Error
 
 Database connection issues. Check:
+
 1. `DATABASE_URL` is correct in `.env.local`
 2. Supabase project is not paused
 3. SSL is enabled in pool config
@@ -430,6 +436,7 @@ Database connection issues. Check:
 ### "Query timeout" Error
 
 Query is too slow. Consider:
+
 1. Add indexes to your database
 2. Reduce `maxRows` in executor config
 3. Increase `timeoutMs` for complex queries
@@ -437,6 +444,7 @@ Query is too slow. Consider:
 ### SQL Validation Failed
 
 The generated SQL has issues. Check:
+
 1. Table/column names in YAML match actual database
 2. Relationships are correctly defined
 3. Formula syntax is valid PostgreSQL

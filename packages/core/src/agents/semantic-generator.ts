@@ -188,7 +188,7 @@ export async function generateSemanticFromSchema(
     context: {
       requestId: `sem_${Date.now()}`,
       client,
-      model: "claude-sonnet-4-20250514",
+      model: "claude-haiku-4-5-20251001",
       fastModel: "claude-haiku-4-5-20251001",
       dialect: "postgresql",
       signal: options?.signal,

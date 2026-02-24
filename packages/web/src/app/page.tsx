@@ -6,13 +6,20 @@ import { Header } from "@/components/layout/Header";
 import { ChatProvider } from "@/contexts/chat-context";
 import { useConnections } from "@/hooks/use-connections";
 import { useSessions } from "@/hooks/use-sessions";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
   const [connectionId, setConnectionId] = useState<string | undefined>();
   const [sessionId, setSessionId] = useState<string | undefined>();
+  /**
+   * mountId drives which runtime instance is mounted in <Assistant>.
+   * It only changes on explicit session switches / explicit new-chat creation,
+   * NOT when a session is auto-created on the first message (so the in-flight
+   * conversation is never disrupted).
+   */
+  const [mountId, setMountId] = useState<string>("new");
 
   const {
     connections,
@@ -42,10 +49,12 @@ export default function Home() {
     deleteSession,
   } = useSessions(connectionId ?? undefined);
 
-  // Auto-select most recent session when sessions load
+  // Auto-select most recent session when sessions load (also restores on page reload)
   useEffect(() => {
     if (!sessionsLoading && sessions.length > 0 && !sessionId && connectionId) {
-      setSessionId(sessions[0]!.id);
+      const id = sessions[0]!.id;
+      setSessionId(id);
+      setMountId(id); // trigger runtime mount with this session's messages
     }
   }, [sessions, sessionsLoading, sessionId, connectionId]);
 
@@ -56,11 +65,31 @@ export default function Home() {
     });
     if (session) {
       setSessionId(session.id);
+      setMountId(session.id); // explicit creation → remount with empty state
     }
   };
 
+  /**
+   * Auto-create a session when the user sends their very first message.
+   * Updates sessionId for future message persistence but does NOT change
+   * mountId, so the running runtime is never remounted.
+   */
+  const handleAutoCreateSession = useCallback(async (): Promise<string | undefined> => {
+    const session = await createSession({
+      title: "New Chat",
+      connectionId: connectionId ?? null,
+    });
+    if (session) {
+      setSessionId(session.id);
+      // intentionally NOT updating mountId — keeps the conversation alive
+      return session.id;
+    }
+    return undefined;
+  }, [createSession, connectionId]);
+
   const handleSelectSession = (id: string) => {
     setSessionId(id);
+    setMountId(id); // explicit switch → remount to load history
     const session = sessions.find((s) => s.id === id);
     if (session?.connection_id) {
       setConnectionId(session.connection_id);
@@ -71,6 +100,7 @@ export default function Home() {
     await deleteSession(id);
     if (sessionId === id) {
       setSessionId(undefined);
+      setMountId("new");
     }
   };
 
@@ -85,7 +115,12 @@ export default function Home() {
   }
 
   return (
-    <ChatProvider sessionId={sessionId} connectionId={connectionId}>
+    <ChatProvider
+      sessionId={sessionId}
+      connectionId={connectionId}
+      mountId={mountId}
+      onSessionCreate={handleAutoCreateSession}
+    >
       <div className="flex h-dvh flex-col bg-background">
         <Header
           connections={connections}

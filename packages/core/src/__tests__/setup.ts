@@ -1,5 +1,5 @@
-import { vi } from "vitest";
 import type Anthropic from "@anthropic-ai/sdk";
+import { vi } from "vitest";
 import type { AgentContext } from "../types.js";
 
 /**
@@ -21,7 +21,7 @@ export function createMockMessage(
         citations: null,
       },
     ],
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     stop_reason: "end_turn",
     stop_sequence: null,
     usage: {
@@ -60,7 +60,7 @@ export function createMockContext(
   return {
     requestId: "test_req_123",
     client,
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     fastModel: "claude-haiku-4-5-20251001",
     dialect: "postgresql",
     ...overrides,

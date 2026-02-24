@@ -10,7 +10,9 @@ import {
 } from "recharts";
 
 import type { RadarConfig } from "@heydata/shared";
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
+import { ChartTooltip } from "../components/ChartTooltip.js";
+import { useInteractiveLegend } from "../hooks/use-interactive-legend.js";
+import { ANIMATION_DEFAULTS, DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
 
 /**
  * Radar chart component for multi-dimensional comparison
@@ -23,6 +25,7 @@ export function RadarChart({
   className,
 }: ChartProps) {
   const { series, legend, title } = spec;
+  const { hiddenSeries, onLegendClick } = useInteractiveLegend();
 
   const config = spec.chartConfig as RadarConfig | undefined;
   const angleKey = config?.angleKey ?? spec.xAxis?.dataKey ?? "subject";
@@ -35,9 +38,13 @@ export function RadarChart({
           <PolarGrid />
           <PolarAngleAxis dataKey={angleKey} fontSize={12} />
           <PolarRadiusAxis label={config?.radiusLabel ? { value: config.radiusLabel, position: "insideStart" } : undefined} />
-          <Tooltip />
+          <Tooltip content={<ChartTooltip />} />
           {(legend?.show ?? true) && (
-            <Legend verticalAlign={legend?.position === "top" ? "top" : "bottom"} />
+            <Legend
+              verticalAlign={legend?.position === "top" ? "top" : "bottom"}
+              onClick={onLegendClick}
+              className="cursor-pointer"
+            />
           )}
           {series.map((s, index) => (
             <Radar
@@ -47,6 +54,8 @@ export function RadarChart({
               stroke={getSeriesColor(index, s.color)}
               fill={getSeriesColor(index, s.color)}
               fillOpacity={0.2}
+              hide={hiddenSeries.has(s.dataKey)}
+              {...ANIMATION_DEFAULTS}
             />
           ))}
         </RechartsRadarChart>

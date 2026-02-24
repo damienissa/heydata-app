@@ -8,7 +8,8 @@ import {
 } from "recharts";
 
 import type { FunnelConfig } from "@heydata/shared";
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
+import { ChartTooltip } from "../components/ChartTooltip.js";
+import { ANIMATION_DEFAULTS, DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
 
 /**
  * Funnel chart component for sequential stage visualization
@@ -38,10 +39,10 @@ export function FunnelChart({
       {title && <h3 className="text-lg font-semibold mb-2">{title}</h3>}
       <ResponsiveContainer width={width} height={height}>
         <RechartsFunnelChart>
-          <Tooltip />
-          <Funnel dataKey={valueKey} nameKey={nameKey} data={sortedData} isAnimationActive>
+          <Tooltip content={<ChartTooltip />} />
+          <Funnel dataKey={valueKey} nameKey={nameKey} data={sortedData} {...ANIMATION_DEFAULTS}>
             {sortedData.map((_, index) => (
-              <Cell key={`cell-${index}`} fill={getSeriesColor(index)} />
+              <Cell key={`cell-${index}`} fill={getSeriesColor(index)} className="cursor-pointer" />
             ))}
             <LabelList position="right" fill="#333" stroke="none" dataKey={nameKey} fontSize={12} />
           </Funnel>

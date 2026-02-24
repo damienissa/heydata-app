@@ -11,7 +11,9 @@ import {
   YAxis,
 } from "recharts";
 
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
+import { ChartTooltip } from "../components/ChartTooltip.js";
+import { useInteractiveLegend } from "../hooks/use-interactive-legend.js";
+import { ANIMATION_DEFAULTS, DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
 
 /**
  * Composed chart component for mixing line, bar, and area series
@@ -25,6 +27,7 @@ export function ComposedChart({
   className,
 }: ChartProps) {
   const { xAxis, yAxis, yAxisRight, series, legend, title, stacked } = spec;
+  const { hiddenSeries, onLegendClick } = useInteractiveLegend();
 
   return (
     <div className={className}>
@@ -53,15 +56,20 @@ export function ComposedChart({
               domain={yAxisRight.domain as [number | string, number | string] | undefined}
             />
           )}
-          <Tooltip />
+          <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(0,0,0,0.05)" }} />
           {(legend?.show ?? true) && (
-            <Legend verticalAlign={legend?.position === "top" ? "top" : "bottom"} />
+            <Legend
+              verticalAlign={legend?.position === "top" ? "top" : "bottom"}
+              onClick={onLegendClick}
+              className="cursor-pointer"
+            />
           )}
           {series.map((s, index) => {
             const color = getSeriesColor(index, s.color);
             const yAxisId = s.yAxisId ?? "left";
             const name = s.name ?? s.dataKey;
             const stackId = stacked ? "stack" : s.stackId;
+            const hidden = hiddenSeries.has(s.dataKey);
 
             switch (s.type) {
               case "bar":
@@ -73,6 +81,8 @@ export function ComposedChart({
                     fill={color}
                     yAxisId={yAxisId}
                     stackId={stackId}
+                    hide={hidden}
+                    {...ANIMATION_DEFAULTS}
                   />
                 );
               case "area":
@@ -87,6 +97,9 @@ export function ComposedChart({
                     fillOpacity={0.6}
                     yAxisId={yAxisId}
                     stackId={stackId}
+                    activeDot={{ r: 5, strokeWidth: 2 }}
+                    hide={hidden}
+                    {...ANIMATION_DEFAULTS}
                   />
                 );
               case "line":
@@ -101,6 +114,9 @@ export function ComposedChart({
                     yAxisId={yAxisId}
                     dot={false}
                     strokeWidth={2}
+                    activeDot={{ r: 5, strokeWidth: 2 }}
+                    hide={hidden}
+                    {...ANIMATION_DEFAULTS}
                   />
                 );
             }

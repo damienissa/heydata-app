@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
 
 import type { TreemapConfig } from "@heydata/shared";
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
+import { ANIMATION_DEFAULTS, DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
 
 interface TreemapContentProps {
   x: number;
@@ -16,7 +17,16 @@ function CustomContent({ x, y, width, height, index, name }: TreemapContentProps
   const showLabel = width > 40 && height > 20;
   return (
     <g>
-      <rect x={x} y={y} width={width} height={height} fill={getSeriesColor(index)} stroke="#fff" strokeWidth={2} />
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={getSeriesColor(index)}
+        stroke="#fff"
+        strokeWidth={2}
+        className="transition-opacity hover:opacity-80 cursor-pointer"
+      />
       {showLabel && (
         <text
           x={x + width / 2}
@@ -67,6 +77,7 @@ export function TreemapChart({
           nameKey="name"
           aspectRatio={4 / 3}
           content={<CustomContent x={0} y={0} width={0} height={0} index={0} name="" />}
+          {...ANIMATION_DEFAULTS}
         >
           <Tooltip formatter={(value: number) => [value.toLocaleString(), "Value"]} />
         </Treemap>

@@ -1,7 +1,10 @@
-import { Cell, Legend, Pie, PieChart as RechartsPieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { useState } from "react";
+import { Cell, Legend, Pie, PieChart as RechartsPieChart, ResponsiveContainer, Sector, Tooltip } from "recharts";
 
 import type { PieConfig } from "@heydata/shared";
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
+import { ChartTooltip } from "../components/ChartTooltip.js";
+import { useInteractiveLegend } from "../hooks/use-interactive-legend.js";
+import { ANIMATION_DEFAULTS, DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
 
 const RADIAN = Math.PI / 180;
 
@@ -36,6 +39,31 @@ function renderLabel(
   );
 }
 
+function renderActiveShape(props: unknown) {
+  const p = props as Record<string, number | string | undefined>;
+  const cx = Number(p.cx ?? 0);
+  const cy = Number(p.cy ?? 0);
+  const innerRadius = Number(p.innerRadius ?? 0);
+  const outerRadius = Number(p.outerRadius ?? 0);
+  const startAngle = Number(p.startAngle ?? 0);
+  const endAngle = Number(p.endAngle ?? 0);
+  const fill = String(p.fill ?? "#888");
+
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 6}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+    </g>
+  );
+}
+
 /**
  * Pie and Donut chart component for proportional data
  */
@@ -47,6 +75,8 @@ export function PieDonutChart({
   className,
 }: ChartProps) {
   const { legend, title, chartConfig } = spec;
+  const { hiddenSeries, onLegendClick } = useInteractiveLegend();
+  const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
 
   const config = chartConfig as PieConfig | undefined;
 
@@ -71,13 +101,16 @@ export function PieDonutChart({
   const outerRadius = config?.outerRadius ?? "80%";
   const labelType = config?.labelType ?? "percent";
 
+  // Filter out hidden slices
+  const visibleData = data.filter((row) => !hiddenSeries.has(String(row[nameKey] ?? "")));
+
   return (
     <div className={className}>
       {title && <h3 className="text-lg font-semibold mb-2">{title}</h3>}
       <ResponsiveContainer width={width} height={height}>
         <RechartsPieChart>
           <Pie
-            data={data}
+            data={visibleData}
             dataKey={valueKey}
             nameKey={nameKey}
             cx="50%"
@@ -86,14 +119,23 @@ export function PieDonutChart({
             outerRadius={outerRadius}
             label={(props: Record<string, number | string | undefined>) => renderLabel(labelType, props)}
             labelLine={labelType !== "none"}
+            activeIndex={activeIndex}
+            activeShape={renderActiveShape}
+            onMouseEnter={(_, index) => setActiveIndex(index)}
+            onMouseLeave={() => setActiveIndex(undefined)}
+            {...ANIMATION_DEFAULTS}
           >
-            {data.map((_, index) => (
-              <Cell key={`cell-${index}`} fill={getSeriesColor(index)} />
+            {visibleData.map((_, index) => (
+              <Cell key={`cell-${index}`} fill={getSeriesColor(index)} className="cursor-pointer" />
             ))}
           </Pie>
-          <Tooltip />
+          <Tooltip content={<ChartTooltip />} />
           {(legend?.show ?? true) && (
-            <Legend verticalAlign={legend?.position === "top" ? "top" : "bottom"} />
+            <Legend
+              verticalAlign={legend?.position === "top" ? "top" : "bottom"}
+              onClick={onLegendClick}
+              className="cursor-pointer"
+            />
           )}
         </RechartsPieChart>
       </ResponsiveContainer>

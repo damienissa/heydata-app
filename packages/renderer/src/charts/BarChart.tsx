@@ -9,7 +9,9 @@ import {
   YAxis,
 } from "recharts";
 
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
+import { ChartTooltip } from "../components/ChartTooltip.js";
+import { useInteractiveLegend } from "../hooks/use-interactive-legend.js";
+import { ANIMATION_DEFAULTS, DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
 
 /**
  * Bar chart component for categorical comparisons
@@ -22,6 +24,7 @@ export function BarChart({
   className,
 }: ChartProps) {
   const { xAxis, yAxis, yAxisRight, series, legend, title, stacked } = spec;
+  const { hiddenSeries, onLegendClick } = useInteractiveLegend();
 
   return (
     <div className={className}>
@@ -50,9 +53,13 @@ export function BarChart({
               domain={yAxisRight.domain as [number | string, number | string] | undefined}
             />
           )}
-          <Tooltip />
+          <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(0,0,0,0.05)" }} />
           {(legend?.show ?? true) && (
-            <Legend verticalAlign={legend?.position === "top" ? "top" : "bottom"} />
+            <Legend
+              verticalAlign={legend?.position === "top" ? "top" : "bottom"}
+              onClick={onLegendClick}
+              className="cursor-pointer"
+            />
           )}
           {series.map((s, index) => (
             <Bar
@@ -62,6 +69,8 @@ export function BarChart({
               fill={getSeriesColor(index, s.color)}
               yAxisId={s.yAxisId ?? "left"}
               stackId={stacked ? "stack" : s.stackId}
+              hide={hiddenSeries.has(s.dataKey)}
+              {...ANIMATION_DEFAULTS}
             />
           ))}
         </RechartsBarChart>

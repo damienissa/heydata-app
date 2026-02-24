@@ -9,7 +9,9 @@ import {
   YAxis,
 } from "recharts";
 
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
+import { ChartTooltip } from "../components/ChartTooltip.js";
+import { useInteractiveLegend } from "../hooks/use-interactive-legend.js";
+import { ANIMATION_DEFAULTS, DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
 
 /**
  * Scatter chart component for correlation and distribution visualization
@@ -22,6 +24,7 @@ export function ScatterChart({
   className,
 }: ChartProps) {
   const { xAxis, yAxis, series, legend, title } = spec;
+  const { hiddenSeries, onLegendClick } = useInteractiveLegend();
 
   return (
     <div className={className}>
@@ -47,18 +50,25 @@ export function ScatterChart({
               domain={yAxis.domain as [number | string, number | string] | undefined}
             />
           )}
-          <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+          <Tooltip content={<ChartTooltip />} cursor={{ strokeDasharray: "3 3" }} />
           {(legend?.show ?? true) && (
-            <Legend verticalAlign={legend?.position === "top" ? "top" : "bottom"} />
-          )}
-          {series.map((s, index) => (
-            <Scatter
-              key={s.dataKey}
-              name={s.name ?? s.dataKey}
-              data={data}
-              fill={getSeriesColor(index, s.color)}
+            <Legend
+              verticalAlign={legend?.position === "top" ? "top" : "bottom"}
+              onClick={onLegendClick}
+              className="cursor-pointer"
             />
-          ))}
+          )}
+          {series.map((s, index) =>
+            hiddenSeries.has(s.dataKey) ? null : (
+              <Scatter
+                key={s.dataKey}
+                name={s.name ?? s.dataKey}
+                data={data}
+                fill={getSeriesColor(index, s.color)}
+                {...ANIMATION_DEFAULTS}
+              />
+            ),
+          )}
         </RechartsScatterChart>
       </ResponsiveContainer>
     </div>

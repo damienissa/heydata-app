@@ -9,7 +9,8 @@ import {
 } from "recharts";
 
 import type { HistogramConfig, Row } from "@heydata/shared";
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
+import { ChartTooltip } from "../components/ChartTooltip.js";
+import { ANIMATION_DEFAULTS, DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
 
 interface Bin {
   label: string;
@@ -71,8 +72,8 @@ export function HistogramChart({
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" label={{ value: valueKey, position: "bottom" }} />
           <YAxis label={{ value: "Frequency", angle: -90, position: "insideLeft" }} />
-          <Tooltip formatter={(value: number) => [value, "Count"]} />
-          <Bar dataKey="count" fill={getSeriesColor(0)} />
+          <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(0,0,0,0.05)" }} />
+          <Bar dataKey="count" name="Count" fill={getSeriesColor(0)} {...ANIMATION_DEFAULTS} />
         </RechartsBarChart>
       </ResponsiveContainer>
     </div>

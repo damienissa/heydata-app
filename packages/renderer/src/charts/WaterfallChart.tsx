@@ -12,7 +12,8 @@ import {
 } from "recharts";
 
 import type { Row, WaterfallConfig } from "@heydata/shared";
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH, type ChartProps } from "../types.js";
+import { ChartTooltip } from "../components/ChartTooltip.js";
+import { ANIMATION_DEFAULTS, DEFAULT_HEIGHT, DEFAULT_WIDTH, type ChartProps } from "../types.js";
 
 interface WaterfallRow {
   _category: string;
@@ -89,11 +90,8 @@ export function WaterfallChart({
           <XAxis dataKey="_category" />
           <YAxis />
           <Tooltip
-            formatter={(value: number, name: string) => {
-              if (name === "_base") return [null, null];
-              return [value.toLocaleString(), "Value"];
-            }}
-            itemSorter={() => -1}
+            content={<ChartTooltip />}
+            cursor={{ fill: "rgba(0,0,0,0.05)" }}
           />
           {(legend?.show !== false) && (
             <Legend
@@ -109,7 +107,7 @@ export function WaterfallChart({
           {/* Invisible base bar */}
           <Bar dataKey="_base" stackId="waterfall" fill="transparent" isAnimationActive={false} />
           {/* Visible value bar */}
-          <Bar dataKey="_value" stackId="waterfall" isAnimationActive>
+          <Bar dataKey="_value" stackId="waterfall" {...ANIMATION_DEFAULTS}>
             {waterfallData.map((entry, index) => {
               let fill = entry._isPositive ? positiveColor : negativeColor;
               if (entry._isTotal) fill = totalColor;

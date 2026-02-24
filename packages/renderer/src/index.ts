@@ -20,8 +20,15 @@ export { KpiCard, type KpiCardProps } from "./components/KpiCard.js";
 // Router
 export { RendererRouter, type RendererRouterProps } from "./RendererRouter.js";
 
+// Components (shared)
+export { ChartTooltip } from "./components/ChartTooltip.js";
+
+// Hooks
+export { useInteractiveLegend } from "./hooks/use-interactive-legend.js";
+
 // Types and utilities
 export {
+  ANIMATION_DEFAULTS,
   DEFAULT_COLORS,
   DEFAULT_HEIGHT,
   DEFAULT_WIDTH,

@@ -9,7 +9,9 @@ import {
   YAxis,
 } from "recharts";
 
-import { DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
+import { ChartTooltip } from "../components/ChartTooltip.js";
+import { useInteractiveLegend } from "../hooks/use-interactive-legend.js";
+import { ANIMATION_DEFAULTS, DEFAULT_HEIGHT, DEFAULT_WIDTH, getSeriesColor, type ChartProps } from "../types.js";
 
 /**
  * Line chart component for time series and trend data
@@ -22,6 +24,7 @@ export function LineChart({
   className,
 }: ChartProps) {
   const { xAxis, yAxis, yAxisRight, series, legend, title } = spec;
+  const { hiddenSeries, onLegendClick } = useInteractiveLegend();
 
   return (
     <div className={className}>
@@ -50,9 +53,13 @@ export function LineChart({
               domain={yAxisRight.domain as [number | string, number | string] | undefined}
             />
           )}
-          <Tooltip />
+          <Tooltip content={<ChartTooltip />} cursor={{ stroke: "#d1d5db", strokeDasharray: "3 3" }} />
           {(legend?.show ?? true) && (
-            <Legend verticalAlign={legend?.position === "top" ? "top" : "bottom"} />
+            <Legend
+              verticalAlign={legend?.position === "top" ? "top" : "bottom"}
+              onClick={onLegendClick}
+              className="cursor-pointer"
+            />
           )}
           {series.map((s, index) => (
             <Line
@@ -64,6 +71,9 @@ export function LineChart({
               yAxisId={s.yAxisId ?? "left"}
               dot={false}
               strokeWidth={2}
+              activeDot={{ r: 5, strokeWidth: 2 }}
+              hide={hiddenSeries.has(s.dataKey)}
+              {...ANIMATION_DEFAULTS}
             />
           ))}
         </RechartsLineChart>

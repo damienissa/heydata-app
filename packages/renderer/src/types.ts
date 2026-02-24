@@ -32,6 +32,15 @@ export const DEFAULT_COLORS = [
 ];
 
 /**
+ * Shared animation props for all chart elements
+ */
+export const ANIMATION_DEFAULTS = {
+  isAnimationActive: true,
+  animationDuration: 300,
+  animationEasing: "ease-out" as const,
+};
+
+/**
  * Get color for a series by index
  */
 export function getSeriesColor(index: number, customColor?: string): string {

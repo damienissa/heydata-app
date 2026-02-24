@@ -24,7 +24,7 @@ export function KpiCard({ spec, data, className }: KpiCardProps) {
   const comparison = parseComparison(kpiComparison);
 
   return (
-    <div className={`rounded-lg border bg-white p-6 shadow-sm ${className ?? ""}`}>
+    <div className={`rounded-lg border bg-white p-6 shadow-sm transition-shadow hover:shadow-md ${className ?? ""}`}>
       {title && <h3 className="text-sm font-medium text-gray-500 mb-1">{title}</h3>}
       <div className="flex items-baseline gap-2">
         <span className="text-3xl font-bold text-gray-900">{formattedValue}</span>

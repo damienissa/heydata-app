@@ -103,12 +103,21 @@ export function GaugeChart({
           <path d={describeArc(cx, cy, radius, arcStart, arcEnd)} fill="none" stroke="#e5e7eb" strokeWidth={20} strokeLinecap="round" />
           {/* Threshold arcs */}
           {arcs.map((arc, i) => (
-            <path key={i} d={arc.path} fill="none" stroke={arc.color} strokeWidth={20} strokeLinecap="butt" />
+            <path key={i} d={arc.path} fill="none" stroke={arc.color} strokeWidth={20} strokeLinecap="butt" className="transition-opacity hover:opacity-80" />
           ))}
           {/* Target marker */}
           {targetMarker}
-          {/* Needle */}
-          <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke="#333" strokeWidth={3} strokeLinecap="round" />
+          {/* Needle with CSS transition for smooth animation */}
+          <line
+            x1={cx}
+            y1={cy}
+            x2={needleX}
+            y2={needleY}
+            stroke="#333"
+            strokeWidth={3}
+            strokeLinecap="round"
+            style={{ transition: "x2 0.6s ease-out, y2 0.6s ease-out" }}
+          />
           <circle cx={cx} cy={cy} r={6} fill="#333" />
           {/* Value text */}
           <text x={cx} y={cy - 20} textAnchor="middle" fontSize={28} fontWeight={700} fill="#111">

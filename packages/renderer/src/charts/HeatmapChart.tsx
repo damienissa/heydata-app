@@ -1,6 +1,16 @@
-import type { HeatmapConfig, Row } from "@heydata/shared";
+import { useState } from "react";
+
+import type { HeatmapConfig } from "@heydata/shared";
 import { DEFAULT_HEIGHT, DEFAULT_WIDTH, type ChartProps } from "../types.js";
 import { interpolateColor } from "../utils/color-scales.js";
+
+interface HoverInfo {
+  x: number;
+  y: number;
+  xLabel: string;
+  yLabel: string;
+  value: number;
+}
 
 /**
  * Heatmap chart component for matrix visualization
@@ -13,6 +23,7 @@ export function HeatmapChart({
   className,
 }: ChartProps) {
   const { title } = spec;
+  const [hover, setHover] = useState<HoverInfo | null>(null);
 
   const config = spec.chartConfig as HeatmapConfig | undefined;
   const xKey = config?.xKey ?? spec.xAxis?.dataKey ?? "x";
@@ -51,9 +62,14 @@ export function HeatmapChart({
   const cellHeight = yValues.length > 0 ? plotHeight / yValues.length : 0;
 
   return (
-    <div className={className}>
+    <div className={className} style={{ position: "relative" }}>
       {title && <h3 className="text-lg font-semibold mb-2">{title}</h3>}
-      <svg width={svgWidth} height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`}>
+      <svg
+        width={svgWidth}
+        height={svgHeight}
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        onMouseLeave={() => setHover(null)}
+      >
         <g transform={`translate(${margin.left},${margin.top})`}>
           {/* Cells */}
           {yValues.map((yVal, yi) =>
@@ -63,34 +79,54 @@ export function HeatmapChart({
               const t = (val - minVal) / (maxVal - minVal);
               const fill = interpolateColor(t, colorScale);
               return (
-                <g key={key}>
-                  <rect
-                    x={xi * cellWidth}
-                    y={yi * cellHeight}
-                    width={cellWidth}
-                    height={cellHeight}
-                    fill={fill}
-                    stroke="#fff"
-                    strokeWidth={1}
-                  >
-                    <title>{`${xVal}, ${yVal}: ${val}`}</title>
-                  </rect>
-                  {showValues && cellWidth > 30 && cellHeight > 16 && (
-                    <text
-                      x={xi * cellWidth + cellWidth / 2}
-                      y={yi * cellHeight + cellHeight / 2}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      fontSize={Math.min(11, cellHeight * 0.5)}
-                      fill={t > 0.5 ? "#fff" : "#333"}
-                    >
-                      {typeof val === "number" && !Number.isInteger(val) ? val.toFixed(1) : val}
-                    </text>
-                  )}
-                </g>
+                <rect
+                  key={key}
+                  x={xi * cellWidth}
+                  y={yi * cellHeight}
+                  width={cellWidth}
+                  height={cellHeight}
+                  fill={fill}
+                  stroke={hover?.xLabel === xVal && hover?.yLabel === yVal ? "#333" : "#fff"}
+                  strokeWidth={hover?.xLabel === xVal && hover?.yLabel === yVal ? 2 : 1}
+                  className="cursor-pointer transition-[stroke-width] duration-150"
+                  onMouseEnter={(e) => {
+                    const rect = (e.target as SVGRectElement).getBoundingClientRect();
+                    setHover({
+                      x: rect.left + rect.width / 2,
+                      y: rect.top,
+                      xLabel: xVal,
+                      yLabel: yVal,
+                      value: val,
+                    });
+                  }}
+                />
               );
             }),
           )}
+          {/* Value labels inside cells */}
+          {showValues &&
+            yValues.map((yVal, yi) =>
+              xValues.map((xVal, xi) => {
+                const key = `${xVal}__${yVal}`;
+                const val = valueMap.get(key) ?? 0;
+                const t = (val - minVal) / (maxVal - minVal);
+                if (cellWidth <= 30 || cellHeight <= 16) return null;
+                return (
+                  <text
+                    key={`v-${key}`}
+                    x={xi * cellWidth + cellWidth / 2}
+                    y={yi * cellHeight + cellHeight / 2}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize={Math.min(11, cellHeight * 0.5)}
+                    fill={t > 0.5 ? "#fff" : "#333"}
+                    style={{ pointerEvents: "none" }}
+                  >
+                    {typeof val === "number" && !Number.isInteger(val) ? val.toFixed(1) : val}
+                  </text>
+                );
+              }),
+            )}
           {/* X-axis labels */}
           {xValues.map((xVal, xi) => (
             <text
@@ -120,6 +156,20 @@ export function HeatmapChart({
           ))}
         </g>
       </svg>
+      {/* Tooltip overlay */}
+      {hover && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+          style={{ left: hover.x, top: hover.y - 8, transform: "translate(-50%, -100%)" }}
+        >
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {hover.xLabel}, {hover.yLabel}
+          </p>
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            {hover.value.toLocaleString()}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

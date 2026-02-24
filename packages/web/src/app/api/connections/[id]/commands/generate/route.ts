@@ -27,11 +27,11 @@ export async function POST(
   const { id: connectionId } = await params;
 
   // ── Fetch existing semantic layer ─────────────────────────────────────────
-  const { data: layer, error: layerError } = await supabase
-    .from("semantic_layers")
+  const { data: layer, error: layerError } = (await supabase
+    .from("semantic_layers" as never)
     .select("semantic_md")
     .eq("connection_id", connectionId)
-    .single();
+    .single()) as { data: { semantic_md: string } | null; error: unknown };
 
   if (layerError || !layer) {
     return new Response(

@@ -39,6 +39,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      connection_commands: {
+        Row: {
+          id: string
+          connection_id: string
+          slash_command: string
+          description: string
+          prompt: string
+          sort_order: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          connection_id: string
+          slash_command: string
+          description: string
+          prompt: string
+          sort_order?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          connection_id?: string
+          slash_command?: string
+          description?: string
+          prompt?: string
+          sort_order?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connection_commands_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           content: string

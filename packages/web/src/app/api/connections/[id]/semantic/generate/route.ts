@@ -2,7 +2,7 @@ export const maxDuration = 300;
 
 import { createClient } from "@/lib/supabase/server";
 import { getPoolManager } from "@heydata/bridge";
-import { generateSemanticFromSchema } from "@heydata/core";
+import { generateSemanticFromSchema, generateCommandsFromSemantic } from "@heydata/core";
 import { decryptConnectionString, CryptoDecryptionError } from "@/lib/crypto";
 
 /** Connection row fields needed for semantic generation */
@@ -13,7 +13,7 @@ type ConnectionForSemantic = {
   ssl_enabled: boolean | null;
 };
 
-type ProgressStep = "connecting" | "introspecting" | "generating" | "saving";
+type ProgressStep = "connecting" | "introspecting" | "generating" | "saving" | "commands";
 
 /**
  * POST /api/connections/:id/semantic/generate
@@ -179,7 +179,43 @@ export async function POST(
         console.log(
           `[semantic/generate] Saved semantic layer for connection ${connectionId}`,
         );
-        send("complete", layer!);
+
+        // ── Step 6: Generate slash commands ───────────────────────────────
+        send("progress", {
+          step: "commands" satisfies ProgressStep,
+          message: "Generating slash commands…",
+        });
+        console.log(`[semantic/generate] Generating commands from semantic layer`);
+
+        let commands: Array<{ slashCommand: string; description: string; prompt: string }> = [];
+        try {
+          const cmdOutput = await generateCommandsFromSemantic(output.semanticMarkdown);
+          commands = cmdOutput.commands;
+
+          // Replace all commands for this connection
+          await supabase
+            .from("connection_commands")
+            .delete()
+            .eq("connection_id", connectionId);
+
+          if (commands.length > 0) {
+            await supabase.from("connection_commands").insert(
+              commands.map((c, i) => ({
+                connection_id: connectionId,
+                slash_command: c.slashCommand,
+                description: c.description,
+                prompt: c.prompt,
+                sort_order: i,
+              })) as never,
+            );
+          }
+          console.log(`[semantic/generate] Saved ${commands.length} commands`);
+        } catch (cmdError) {
+          // Non-fatal: commands generation failure should not break semantic generation
+          console.error("[semantic/generate] Command generation failed (non-fatal):", cmdError);
+        }
+
+        send("complete", { ...layer!, commands });
       } catch (error) {
         const message =
           error instanceof Error ? error.message : String(error);

@@ -10,7 +10,14 @@ import {
   type IntrospectedSchema,
 } from "@/components/setup/SchemaPreview";
 import { SemanticPreview } from "@/components/setup/SemanticPreview";
-import { CheckIcon, DatabaseIcon, SparklesIcon, TableIcon } from "lucide-react";
+import {
+  CheckIcon,
+  DatabaseIcon,
+  SparklesIcon,
+  TableIcon,
+  LoaderIcon,
+  CircleDotIcon,
+} from "lucide-react";
 
 const STEPS = [
   { id: 1, title: "Connect", icon: DatabaseIcon },
@@ -21,6 +28,35 @@ const STEPS = [
 
 type StepId = (typeof STEPS)[number]["id"];
 
+type ProgressStep = "connecting" | "introspecting" | "generating" | "saving" | "commands";
+
+const PROGRESS_STEPS: { id: ProgressStep; label: string }[] = [
+  { id: "connecting", label: "Connecting to database" },
+  { id: "introspecting", label: "Reading schema" },
+  { id: "generating", label: "Generating semantic layer" },
+  { id: "saving", label: "Saving" },
+  { id: "commands", label: "Generating commands" },
+];
+
+function parseSseChunk(chunk: string): Array<{ event: string; data: unknown }> {
+  const results: Array<{ event: string; data: unknown }> = [];
+  const lines = chunk.split("\n");
+  let eventName = "";
+  for (const line of lines) {
+    if (line.startsWith("event: ")) {
+      eventName = line.slice(7).trim();
+    } else if (line.startsWith("data: ") && eventName) {
+      try {
+        results.push({ event: eventName, data: JSON.parse(line.slice(6)) });
+      } catch {
+        // ignore malformed data lines
+      }
+      eventName = "";
+    }
+  }
+  return results;
+}
+
 export default function SetupPage() {
   const router = useRouter();
   const [step, setStep] = useState<StepId>(1);
@@ -30,6 +66,7 @@ export default function SetupPage() {
   const [semanticMarkdown, setSemanticMarkdown] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progressStep, setProgressStep] = useState<ProgressStep | null>(null);
 
   const handleConnect = async (data: ConnectionFormData) => {
     setError(null);
@@ -87,28 +124,65 @@ export default function SetupPage() {
     if (!connectionId) return;
     setError(null);
     setLoading(true);
+    setProgressStep("connecting");
     try {
       const res = await fetch(
         `/api/connections/${connectionId}/semantic/generate`,
         { method: "POST" },
       );
       if (!res.ok) {
-        const json = await res.json();
-        throw new Error(json.error ?? res.statusText);
+        const json = await res.json().catch(() => ({}));
+        throw new Error((json as { error?: string }).error ?? res.statusText);
       }
-      const data = await res.json();
-      setSemanticMarkdown(data.semantic_md ?? "");
-      setStep(4);
+      if (!res.body) throw new Error("No response body from server.");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const boundary = buffer.lastIndexOf("\n\n");
+        if (boundary === -1) continue;
+
+        const toProcess = buffer.slice(0, boundary + 2);
+        buffer = buffer.slice(boundary + 2);
+
+        for (const { event, data } of parseSseChunk(toProcess)) {
+          const d = data as Record<string, unknown>;
+          if (event === "progress") {
+            setProgressStep(d.step as ProgressStep);
+          } else if (event === "complete") {
+            setSemanticMarkdown((d.semantic_md as string) ?? "");
+            setStep(4);
+          } else if (event === "error") {
+            throw new Error((d.message as string) ?? "Generation failed.");
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
+      setProgressStep(null);
     }
   };
 
   const handleDone = () => {
     router.push("/");
     router.refresh();
+  };
+
+  const stepState = (stepId: ProgressStep): "done" | "active" | "pending" => {
+    if (!progressStep) return "pending";
+    const currentIdx = PROGRESS_STEPS.findIndex((s) => s.id === progressStep);
+    const thisIdx = PROGRESS_STEPS.findIndex((s) => s.id === stepId);
+    if (thisIdx < currentIdx) return "done";
+    if (thisIdx === currentIdx) return "active";
+    return "pending";
   };
 
   return (
@@ -187,21 +261,61 @@ export default function SetupPage() {
           {step === 3 && (
             <div>
               <h2 className="mb-4 text-lg font-medium">Generate semantic layer</h2>
-              {schema && (
+              {schema && !loading && (
                 <div className="mb-4">
                   <SchemaPreview schema={schema} />
                 </div>
               )}
-              <p className="mb-4 text-sm text-muted-foreground">
-                AI will analyze the schema and generate metrics, dimensions, and
-                entity relationships.
-              </p>
-              {error && (
-                <p className="mb-4 text-sm text-destructive">{error}</p>
+              {loading && progressStep ? (
+                <div className="flex flex-col gap-3 py-2">
+                  {PROGRESS_STEPS.map((s) => {
+                    const state = stepState(s.id);
+                    return (
+                      <div key={s.id} className="flex items-center gap-2.5">
+                        {state === "done" && (
+                          <div className="flex size-4 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+                            <CheckIcon className="size-2.5" />
+                          </div>
+                        )}
+                        {state === "active" && (
+                          <div className="flex size-4 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                            <LoaderIcon className="size-2.5 animate-spin" />
+                          </div>
+                        )}
+                        {state === "pending" && (
+                          <div className="flex size-4 items-center justify-center rounded-full bg-muted text-muted-foreground/40">
+                            <CircleDotIcon className="size-2.5" />
+                          </div>
+                        )}
+                        <span
+                          className={`text-xs ${
+                            state === "done"
+                              ? "text-muted-foreground line-through"
+                              : state === "active"
+                                ? "font-medium text-foreground"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {s.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    AI will analyze the schema and generate metrics, dimensions, and
+                    entity relationships.
+                  </p>
+                  {error && (
+                    <p className="mb-4 text-sm text-destructive">{error}</p>
+                  )}
+                  <Button onClick={handleGenerate} disabled={loading}>
+                    Generate semantic layer
+                  </Button>
+                </>
               )}
-              <Button onClick={handleGenerate} disabled={loading}>
-                {loading ? "Generating…" : "Generate semantic layer"}
-              </Button>
             </div>
           )}
 

@@ -372,3 +372,44 @@ Use `claude-haiku-4-5-20251001` for lightweight structured agents and keep `clau
 - [x] `data-validator.ts` — switch to `context.fastModel` (Haiku)
 - [x] `viz-planner.ts` — switch to `context.fastModel` (Haiku)
 - Keep `context.model` (Sonnet) in: `sql-generator.ts`, `data-analyzer.ts`, `narrative.ts`, `semantic-generator.ts`
+
+---
+
+## Phase 21 — Dynamic Slash Commands from Semantic Layer
+
+Auto-generate `/commandName`-style chat shortcuts from the semantic layer, persist them in DB, surface them as a slash-command picker in the chat composer, and allow editing via the semantic layer settings page.
+
+### 21a — DB Migration
+
+- [x] `supabase/migrations/20260225100000_connection_commands.sql` — `connection_commands` table with `slash_command`, `description`, `prompt`, `sort_order`; RLS via connection ownership; unique constraint on `(connection_id, slash_command)`
+
+### 21b — Supabase Types
+
+- [x] `packages/supabase/src/types.ts` — add `connection_commands` Row/Insert/Update types
+
+### 21c — Core: Command Generator Agent
+
+- [x] `packages/core/src/agents/command-generator.ts` — LLM agent (fastModel: Haiku) that parses semantic markdown and returns 5–10 slash commands (Zod-validated JSON output)
+- [x] Export `generateCommands`, `generateCommandsFromSemantic`, types from `packages/core/src/agents/index.ts` and `packages/core/src/index.ts`
+
+### 21d — Semantic Generate Route
+
+- [x] `packages/web/src/app/api/connections/[id]/semantic/generate/route.ts` — add `"commands"` progress step; call `generateCommandsFromSemantic` after saving; upsert commands; include `commands[]` in `complete` SSE payload (non-fatal failure)
+
+### 21e — Commands API Route
+
+- [x] `packages/web/src/app/api/connections/[id]/commands/route.ts` — `GET` (list ordered by sort_order) + `PUT` (full replace: delete + insert)
+
+### 21f — Commands Settings UI
+
+- [x] `packages/web/src/app/connections/[id]/semantic/page.tsx` — tab strip ("Semantic Layer" | "Commands"); Commands tab: editable list (slash_command, description, prompt), add/delete rows, save button; Regenerate also refreshes commands via SSE payload
+
+### 21g — Slash Command Picker in Chat
+
+- [x] `packages/web/src/hooks/use-commands.ts` — `useCommands(connectionId)` hook
+- [x] `packages/web/src/components/assistant-ui/command-picker.tsx` — floating picker with keyboard nav (↑ ↓ Enter Tab Escape), filtered by query
+- [x] `packages/web/src/components/assistant-ui/thread.tsx` — `Composer` detects `/` prefix via `onChange`, shows `CommandPicker`, on select calls `composerRuntime.setText(command.prompt)`
+
+### 21h — Setup Page Progress
+
+- [x] `packages/web/src/app/setup/page.tsx` — rewrite `handleGenerate` to read SSE stream from `semantic/generate` endpoint; show 5-step progress indicator (connecting → introspecting → generating → saving → commands) replacing the spinner button during generation

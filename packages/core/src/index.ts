@@ -17,6 +17,8 @@ export {
   generateNarrative,
   generateSemantic,
   generateSemanticFromSchema,
+  generateCommands,
+  generateCommandsFromSemantic,
   type IntentResolverInput,
   type SqlGeneratorInput,
   type SqlValidatorInput,
@@ -27,6 +29,9 @@ export {
   type NarrativeInput,
   type SemanticGeneratorInput,
   type SemanticGeneratorOutput,
+  type CommandGeneratorInput,
+  type CommandGeneratorOutput,
+  type GeneratedCommand,
 } from "./agents/index.js";
 
 // Types

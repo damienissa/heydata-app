@@ -27,3 +27,13 @@ export type {
   SemanticGeneratorInput,
   SemanticGeneratorOutput,
 } from "./semantic-generator.js";
+
+export {
+  generateCommands,
+  generateCommandsFromSemantic,
+} from "./command-generator.js";
+export type {
+  CommandGeneratorInput,
+  CommandGeneratorOutput,
+  GeneratedCommand,
+} from "./command-generator.js";

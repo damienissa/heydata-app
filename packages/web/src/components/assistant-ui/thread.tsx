@@ -19,6 +19,7 @@ import {
   MessagePrimitive,
   SuggestionPrimitive,
   ThreadPrimitive,
+  useComposerRuntime,
 } from "@assistant-ui/react";
 import {
   ArrowDownIcon,
@@ -32,8 +33,14 @@ import {
   PencilIcon,
   RefreshCwIcon,
   SquareIcon,
+  BarChart2Icon,
 } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 import type { FC } from "react";
+import { CommandPicker } from "./command-picker";
+import { useChatContext } from "@/contexts/chat-context";
+import { useCommands, type Command } from "@/hooks/use-commands";
 
 export const Thread: FC = () => {
   return (
@@ -96,6 +103,13 @@ const ThreadWelcome: FC = () => {
           <p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground text-lg delay-75 duration-200">
             Ask questions about your data in natural language
           </p>
+          <Link
+            href="/visualizations"
+            className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both mt-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm text-muted-foreground delay-100 duration-200 transition-colors hover:border-foreground/30 hover:text-foreground"
+          >
+            <BarChart2Icon className="size-3.5" />
+            Browse chart types & example prompts
+          </Link>
         </div>
       </div>
       <ThreadSuggestions />
@@ -136,20 +150,44 @@ const ThreadSuggestionItem: FC = () => {
 };
 
 const Composer: FC = () => {
+  const { connectionId } = useChatContext();
+  const { commands } = useCommands(connectionId);
+  const composerRuntime = useComposerRuntime();
+
+  const [inputValue, setInputValue] = useState("");
+  const slashMode = inputValue.startsWith("/");
+  const slashQuery = slashMode ? inputValue.slice(1) : "";
+
+  function handleSelect(command: Command) {
+    composerRuntime.setText(command.prompt);
+    setInputValue("");
+  }
+
   return (
-    <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
-      <ComposerPrimitive.AttachmentDropzone className="aui-composer-attachment-dropzone flex w-full flex-col rounded-2xl border border-input bg-background px-1 pt-2 outline-none transition-shadow has-[textarea:focus-visible]:border-ring has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring/20 data-[dragging=true]:border-ring data-[dragging=true]:border-dashed data-[dragging=true]:bg-accent/50">
-        <ComposerAttachments />
-        <ComposerPrimitive.Input
-          placeholder="Send a message..."
-          className="aui-composer-input mb-1 max-h-32 min-h-14 w-full resize-none bg-transparent px-4 pt-2 pb-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0"
-          rows={1}
-          autoFocus
-          aria-label="Message input"
+    <div className="relative">
+      {slashMode && commands.length > 0 && (
+        <CommandPicker
+          commands={commands}
+          query={slashQuery}
+          onSelect={handleSelect}
+          onClose={() => setInputValue("")}
         />
-        <ComposerAction />
-      </ComposerPrimitive.AttachmentDropzone>
-    </ComposerPrimitive.Root>
+      )}
+      <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
+        <ComposerPrimitive.AttachmentDropzone className="aui-composer-attachment-dropzone flex w-full flex-col rounded-2xl border border-input bg-background px-1 pt-2 outline-none transition-shadow has-[textarea:focus-visible]:border-ring has-[textarea:focus-visible]:ring-2 has-[textarea:focus-visible]:ring-ring/20 data-[dragging=true]:border-ring data-[dragging=true]:border-dashed data-[dragging=true]:bg-accent/50">
+          <ComposerAttachments />
+          <ComposerPrimitive.Input
+            placeholder="Send a message... (type / for commands)"
+            className="aui-composer-input mb-1 max-h-32 min-h-14 w-full resize-none bg-transparent px-4 pt-2 pb-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0"
+            rows={1}
+            autoFocus
+            aria-label="Message input"
+            onChange={(e) => setInputValue(e.target.value)}
+          />
+          <ComposerAction />
+        </ComposerPrimitive.AttachmentDropzone>
+      </ComposerPrimitive.Root>
+    </div>
   );
 };
 

@@ -22,7 +22,6 @@ export type { NarrativeInput } from "./narrative.js";
 export {
   generateSemantic,
   generateSemanticFromSchema,
-  toSemanticMetadata,
 } from "./semantic-generator.js";
 export type {
   SemanticGeneratorInput,

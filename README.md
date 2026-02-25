@@ -10,7 +10,7 @@ Hey Data replaces static BI dashboards with a dynamic, AI-powered chat interface
 - **Auto-generated semantic layer** — LLM analyzes your tables and generates metrics, dimensions, and entities
 - **Natural language queries** — Ask "show daily revenue trend" instead of writing SQL
 - **Multi-agent pipeline** — Intent resolution → SQL generation → validation → analysis → visualization
-- **Interactive visualizations** — Line charts, bar charts, area charts, scatter plots, KPI cards, data tables
+- **16 chart types** — Line, bar, area, scatter, pie, donut, funnel, radar, treemap, waterfall, histogram, gauge, heatmap, composed, KPI cards, data tables
 - **Multi-user** — Supabase Auth for login/signup; each user has isolated connections and chat history
 - **Chat history** — Conversations are persisted and resumable
 - **Docker-ready** — Single container deployment with cloud Supabase
@@ -80,25 +80,13 @@ pnpm build
 pnpm dev
 ```
 
-### Development with file-based semantic layer
-
-For local development without Supabase, you can use the file-based semantic layer with a direct database connection:
-
-```bash
-# In packages/web/.env.local, set:
-DATABASE_URL=postgresql://user:password@localhost:5432/your_db
-ANTHROPIC_API_KEY=your_key
-```
-
-This uses YAML definitions from `packages/semantic/definitions/` instead of Supabase-stored semantic layers.
-
 ## Monorepo Packages
 
 | Package | Description |
 | --- | --- |
 | `@heydata/web` | Next.js frontend — auth, chat, onboarding UI |
 | `@heydata/core` | AI agent pipeline — orchestrator, intent resolver, SQL generator, etc. |
-| `@heydata/semantic` | Semantic layer — YAML loader, registry, metadata |
+| `@heydata/semantic` | Semantic layer — Markdown document store, registry |
 | `@heydata/bridge` | Database adapter — connection pooling, SQL execution, schema introspection |
 | `@heydata/renderer` | Visualization — Recharts charts, TanStack Table, KPI cards |
 | `@heydata/supabase` | Supabase client — auth helpers, middleware, generated types |
@@ -112,6 +100,7 @@ This uses YAML definitions from `packages/semantic/definitions/` instead of Supa
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Publishable key (`sb_publishable_...`) or legacy anon JWT — [API keys guide](https://supabase.com/docs/guides/api/api-keys) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Secret key (`sb_secret_...`) or legacy service_role JWT — server-side only, never expose |
 | `ANTHROPIC_API_KEY` | Yes | Anthropic API key for Claude |
+| `CONNECTION_STRING_ENCRYPTION_KEY` | Yes | 64-char hex key for AES-256-GCM encryption of connection strings |
 | `DATABASE_URL` | Dev only | Direct PostgreSQL connection (bypasses Supabase connections) |
 
 ## Documentation
@@ -119,7 +108,7 @@ This uses YAML definitions from `packages/semantic/definitions/` instead of Supa
 - [Architecture](docs/architecture.md) — System layers, connection lifecycle, deployment
 - [Agent Pipeline](docs/agents.md) — Multi-agent pipeline with semantic generator
 - [Data Flow](docs/data-flow.md) — End-to-end request walkthrough
-- [Semantic Layer](docs/semantic-layer.md) — Auto-generation, YAML definitions, registry
+- [Semantic Layer](docs/semantic-layer.md) — Auto-generation, Markdown document model, registry
 - [Cross-Cutting](docs/cross-cutting.md) — Auth, multi-tenancy, caching, observability
 - [Development Plan](docs/development-plan.md) — Phase-by-phase progress tracking
 

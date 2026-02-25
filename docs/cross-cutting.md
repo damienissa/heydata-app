@@ -39,7 +39,8 @@ User database connections require careful security handling.
 **Connection string storage:**
 
 - Stored in Supabase `connections` table
-- Encrypted at rest by Supabase PostgreSQL
+- **Application-level encryption:** AES-256-GCM with random IVs, stored as `v1:<iv_hex>:<authTag_hex>:<ciphertext_hex>`. Key managed via `CONNECTION_STRING_ENCRYPTION_KEY` env var (64 hex chars / 32 bytes). Encryption/decryption in `packages/web/src/lib/crypto.ts`
+- **Database-level encryption:** Supabase PostgreSQL encrypts at rest
 - RLS ensures only the owning user can read their connection strings
 - Service role key (server-side only) used for API route operations
 

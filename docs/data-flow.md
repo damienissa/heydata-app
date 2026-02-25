@@ -111,10 +111,10 @@ The query is forwarded to `@heydata/core` via `processQueryForConnection()`.
 
 Before the agent pipeline runs, the system loads resources for the active connection:
 
-1. **Load connection** — Fetch connection config from Supabase `connections` table (verifying user ownership via RLS)
-2. **Get or create pool** — The pool manager checks if a pool already exists for this connection ID. If not, it creates one using the `DatabaseAdapter`.
-3. **Load semantic metadata** — Fetch metrics, dimensions, and entities from Supabase `semantic_layers` table for this connection
-4. **Build registry** — `SemanticRegistry.loadFromMetadata()` creates an in-memory lookup with synonym indexing
+1. **Load connection** — Fetch connection config from Supabase `connections` table (verifying user ownership via RLS). Decrypt connection string (AES-256-GCM)
+2. **Get or create pool** — The pool manager checks if a pool already exists for this connection ID. If not, it creates one using the `DatabaseAdapter`
+3. **Load semantic layer** — Fetch `semantic_md` (Markdown text) from Supabase `semantic_layers` table for this connection
+4. **Build context** — The Markdown semantic layer is injected directly into agent prompts as a context block
 
 ### Step 4 — Orchestration (`@heydata/core` — Orchestrator Agent)
 
@@ -260,11 +260,17 @@ For a first-time user, before any chat can happen:
    ▼
 5. Auto-generate semantic layer
    ├── semantic-generator agent analyzes raw_schema
-   ├── Produces: metrics, dimensions, entities with formulas + synonyms
-   ├── User reviews and can edit generated definitions
-   ├── Stored in Supabase semantic_layers table
+   ├── Produces: Markdown document with metrics, dimensions, entities, domain knowledge
+   ├── User reviews and can edit the Markdown via split-view editor
+   ├── Stored as semantic_md in Supabase semantic_layers table
    │
    ▼
-6. Redirect to chat
+6. Auto-generate slash commands
+   ├── command-generator agent parses semantic layer
+   ├── Produces: 5-10 /commandName shortcuts for common queries
+   ├── Stored in Supabase connection_commands table
+   │
+   ▼
+7. Redirect to chat
    └── Ready to ask questions against the connected database
 ```

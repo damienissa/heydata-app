@@ -17,6 +17,7 @@
 | 6 | Visualization Planner | Decides how to visually represent the data |
 | 7 | Narrative | Writes human-readable summaries alongside visualizations |
 | 8 | Semantic Generator | Auto-generates semantic layer from introspected database schema |
+| 9 | Command Generator | Auto-generates slash commands from semantic layer |
 
 ---
 
@@ -267,12 +268,32 @@ This agent is invoked during the **onboarding flow** when a user connects a new 
 - Generates meaningful aggregate metrics with SQL formulas (COUNT, SUM, AVG, etc.)
 - Creates natural language synonyms for each metric and dimension for fuzzy matching
 - Sets formatting rules (number, currency, percentage, date) based on column types and names
-- Outputs valid definitions matching existing Zod schemas
+- Outputs a complete Markdown document with sections for overview, tables, metrics, dimensions, relationships, and domain knowledge
 
 **Input:** `IntrospectedSchema` — tables, columns, data types, foreign keys, constraints
-**Output:** `{ metrics: MetricDefinition[], dimensions: DimensionDefinition[], entities: EntityYaml[] }`
+**Output:** `string` — Markdown document describing the semantic layer
 
 **Not part of the query retry loop** — this agent runs once during onboarding and can be re-triggered manually by the user.
+
+---
+
+### 3.9: Command Generator Agent
+
+**Role:** Auto-generate slash commands from the semantic layer for quick access to common queries.
+
+This agent is invoked after the semantic layer is generated or regenerated. It parses the Markdown semantic document and produces 5–10 `/commandName` shortcuts that users can type in the chat composer.
+
+**Responsibilities:**
+
+- Parses the semantic layer to identify key metrics, dimensions, and common query patterns
+- Generates concise slash commands with descriptive names, descriptions, and full prompt text
+- Assigns sort order for display priority
+- Outputs Zod-validated JSON matching the `connection_commands` table schema
+
+**Input:** Semantic layer Markdown string
+**Output:** `Array<{ slash_command: string, description: string, prompt: string, sort_order: number }>`
+
+**Uses fast model** (Haiku) for cost efficiency. Not part of the query retry loop.
 
 ---
 
@@ -290,6 +311,6 @@ This agent is invoked during the **onboarding flow** when a user connects a new 
 ## Key Design Decisions
 
 - **Parallel vs. sequential:** Viz Planner and Narrative Agent run in parallel after Data Analyzer
-- **Agent-per-model:** Different agents can use different LLM models (e.g., cheaper model for validation, stronger model for SQL generation)
+- **Tiered model strategy:** Lightweight agents (intent resolver, validators, viz planner, command generator) use a fast model; complex reasoning agents (SQL generator, analyzer, narrative, semantic generator) use a standard model. Configured via `OrchestratorConfig.model` and `OrchestratorConfig.fastModel`
 - **Caching at agent level:** Intent Resolver outputs are cached for similar queries
 - **Human-in-the-loop:** Users can review semantic generation results before they are used; intent clarification is surfaced when confidence is low

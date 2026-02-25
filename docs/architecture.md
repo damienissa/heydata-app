@@ -79,8 +79,9 @@ The system is organized into eight layers:
 
 **Metadata tables (Supabase PostgreSQL):**
 
-- `connections` — User's database connection configs (connection string, type, SSL, status)
-- `semantic_layers` — Auto-generated semantic configs per connection (metrics, dimensions, entities as JSONB)
+- `connections` — User's database connection configs (connection string encrypted with AES-256-GCM, type, SSL, status)
+- `semantic_layers` — Semantic layer per connection (`semantic_md TEXT` — Markdown document)
+- `connection_commands` — Auto-generated slash commands per connection (slash_command, description, prompt)
 - `chat_sessions` — Conversation sessions per user per connection
 - `chat_messages` — Individual messages with role, content, and tool results
 
@@ -98,8 +99,8 @@ See [`docs/semantic-layer.md`](./semantic-layer.md) for full details.
 
 **Two loading modes:**
 
-1. **From database (primary)** — Load from Supabase `semantic_layers` table via `loadFromMetadata()`. Used for user-connected databases with auto-generated semantic layers.
-2. **From YAML files (development)** — Load from `definitions/` directory via `loadDefinitions()`. Used for local development and testing.
+1. **From database (primary)** — Load `semantic_md` Markdown text from Supabase `semantic_layers` table. The Markdown is injected directly into agent prompts as a context block.
+2. **From YAML files (legacy/development)** — Load from `definitions/` directory via `loadDefinitions()`. Retained for backward compatibility but deprecated in favor of the database-stored Markdown model.
 
 ### Layer 4: `@heydata/core` — AI Agent Orchestration Engine
 
@@ -107,7 +108,12 @@ See [`docs/semantic-layer.md`](./semantic-layer.md) for full details.
 
 Uses a multi-agent architecture where each agent has a focused role, its own system prompt, and a well-defined input/output contract. See [`docs/agents.md`](./agents.md) for the full pipeline.
 
-**Includes the `semantic-generator` agent** — an LLM agent that analyzes introspected database schema and auto-generates meaningful metrics, dimensions, and entity definitions.
+**Includes specialized agents:**
+
+- **Semantic Generator** — LLM agent that analyzes introspected database schema and auto-generates a Markdown semantic layer document
+- **Command Generator** — LLM agent that parses the semantic layer and generates slash commands for quick access to common queries
+
+**Tiered model strategy:** Lightweight agents (intent resolver, validators, viz planner) use a fast model; complex reasoning agents (SQL generator, analyzer, narrative) use a standard model. Configurable via `OrchestratorConfig`.
 
 ### Layer 5: `@heydata/bridge` — Execution Bridge
 
@@ -135,7 +141,7 @@ DatabaseAdapter interface
 **Role:** Store and serve the raw analytical data.
 
 - Users connect their own PostgreSQL database via the onboarding wizard
-- Connection strings are stored in Supabase `connections` table
+- Connection strings are stored encrypted (AES-256-GCM) in Supabase `connections` table
 - Hey Data uses a read-only connection pattern with SQL guards
 - Schema is auto-introspected via `information_schema`
 
@@ -144,7 +150,7 @@ DatabaseAdapter interface
 **Role:** Turn raw data + visualization instructions into interactive charts, tables, and dashboards.
 
 - The LLM outputs **visualization specifications** (not raw chart library code)
-- Supports: line charts, bar charts, area charts, scatter plots, composed charts, KPI cards, data tables
+- Supports 16 chart types: line, bar, area, scatter, composed, pie, donut, funnel, radar, treemap, waterfall, histogram, gauge, heatmap, KPI cards, data tables
 - Built on Recharts + TanStack Table
 
 ### Layer 8: `@heydata/shared` — Shared Types

@@ -1,74 +1,59 @@
 # Hey Data — Open Questions
 
-This document tracks unresolved architectural and product decisions. These should be answered before or during v1 implementation planning.
+This document tracks unresolved architectural and product decisions.
 
 ---
 
-## 1. Scope of v1
+## 1. Scope of v1 — RESOLVED (Phase 12-14)
 
 **Question:** Start with a single domain (e.g., revenue analytics) or go broad from the beginning?
 
-**Why it matters:**
-- A narrow scope allows the semantic layer to be defined precisely and completely before launch
-- A broad scope tests the system's generality earlier but increases the surface area for failures
-- The answer affects how the semantic layer is structured and how many metric definitions are needed before the product is useful
+**Resolution:** Broad/universal approach. The semantic layer is auto-generated from any PostgreSQL schema via the semantic-generator agent (Phase 12). Users connect any database and get a semantic layer tailored to their schema. No domain-specific scoping.
 
 ---
 
-## 2. User Personas
+## 2. User Personas — RESOLVED (Phase 3c, 14)
 
 **Question:** Who are the primary users? (Executives, analysts, product managers?)
 
-**Why it matters:**
-- Executives want high-level summaries; analysts want drill-down and raw data access
-- The Narrative Agent's tone and the UI's default verbosity should be tuned to the primary persona
-- Access rules and what metrics are surfaced by default depend on who is using the system
-- Determines whether the UI should lean purely conversational or support more dashboard-like features
+**Resolution:** The assistant-ui chat interface targets a broad audience — analysts, product managers, and technical users. The conversational UI is accessible to non-technical users while showing SQL and reasoning for power users (progressive trust). Semantic layer editing is available for analytics engineers.
 
 ---
 
-## 3. Conversation Depth
+## 3. Conversation Depth — RESOLVED (Phase 13)
 
 **Question:** Simple Q&A only, or full analytical sessions with drill-downs and multi-turn refinement?
 
-**Why it matters:**
-- Full analytical sessions require robust conversation state management in the Orchestrator
-- The Intent Resolver needs to correctly interpret follow-up queries in context ("same but for Q3", "now by region")
-- Session depth affects context window management, caching strategy, and UI design
-- Simple Q&A is significantly easier to build and test first
+**Resolution:** Full analytical sessions. Multi-turn conversations with follow-up support are implemented in Phase 13. The intent resolver handles follow-up queries ("now break that down by region", "same but for Q3") by reusing and modifying the prior intent. Chat history is persisted in Supabase for session continuity.
 
 ---
 
-## 4. Multi-Tenant
+## 4. Multi-Tenant — RESOLVED (Phase 10)
 
 **Question:** Single team or multiple teams with different semantic layers?
 
-**Why it matters:**
-- Multi-tenancy means different teams may have conflicting metric definitions (e.g., "revenue" means different things to Sales vs. Finance)
-- Requires namespace isolation in the semantic layer, per-tenant access rules, and separate context management
-- Single-tenant is much simpler to implement and reason about
-- This decision shapes the entire data model of `@heydata/semantic`
+**Resolution:** Multi-user with per-user isolation via Supabase Auth + Row Level Security (Phase 10). Each user has their own connections, semantic layers, and chat history. RLS policies on all tables ensure data isolation. Different users can have different semantic layers for the same database schema.
 
 ---
 
-## 5. Feedback Loop
+## 5. Feedback Loop — OPEN
 
 **Question:** How do incorrect results feed back into improving the semantic layer?
 
-**Why it matters:**
-- User-flagged errors are a valuable signal, but acting on them requires a defined process
-- Options range from manual review by analytics engineers to AI-assisted suggestions for updating metric definitions
-- Without a feedback loop, the semantic layer will drift from business reality over time
-- Affects observability requirements and what data needs to be captured per query
+**Current state:** Users can edit the semantic layer Markdown document directly (Phase 18c split-view editor), which addresses the "correct the system" use case. However, there is no explicit result-flagging UI or automated feedback pipeline from flagged results to semantic layer updates.
+
+**Remaining work:**
+
+- Add a "flag as incorrect" button on query results
+- Log flagged results with full trace for review
+- Consider AI-assisted suggestions for semantic layer corrections based on flagged patterns
 
 ---
 
-## 6. Offline / Async
+## 6. Offline / Async — OPEN
 
 **Question:** Should users be able to schedule recurring queries or receive alerts when metrics hit thresholds?
 
-**Why it matters:**
-- Async/scheduled queries require a job scheduling infrastructure that doesn't exist in the conversational model
-- Alerts require threshold definitions and notification delivery (email, Slack, etc.)
-- This is a significant scope expansion beyond the core conversational interface
-- Could be deferred to v2 without affecting v1 architecture decisions
+**Current state:** Deferred beyond current roadmap. The system is fully synchronous and conversational. Adding async/scheduled queries would require a job scheduling infrastructure (e.g., BullMQ + Redis) and a notification delivery system (email, Slack).
+
+**Impact:** Does not affect current architecture decisions. Can be layered on top of the existing system as a separate phase.

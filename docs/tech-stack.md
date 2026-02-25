@@ -9,10 +9,11 @@ Single reference for every concrete technology choice across the monorepo. Locke
 | Package | Primary tech |
 |---|---|
 | `@heydata/web` | Next.js 15, React 19, Tailwind CSS |
-| `@heydata/semantic` | TypeScript, Zod, YAML definitions |
+| `@heydata/semantic` | TypeScript, Markdown document store |
 | `@heydata/core` | TypeScript, Anthropic SDK, Zod |
 | `@heydata/bridge` | TypeScript, node-postgres (`pg`) |
 | `@heydata/renderer` | React, Recharts |
+| `@heydata/supabase` | Supabase JS, SSR helpers |
 | `@heydata/shared` | TypeScript, Zod |
 | Monorepo | pnpm workspaces, Turborepo, TypeScript |
 
@@ -44,25 +45,28 @@ Single reference for every concrete technology choice across the monorepo. Locke
 - Next.js 15 (App Router, React Server Components)
 - React 19
 - Tailwind CSS — utility-first, no CSS build complexity
-- No external state management library — React Context + `useReducer` sufficient for conversation state at v1
+- Zustand for client-side state management
+- `assistant-ui` for production-ready chat components
+- Vercel AI SDK (`ai`, `@ai-sdk/anthropic`) for streaming LLM responses
 
-**Key dependencies:** `next`, `react`, `react-dom`, `tailwindcss`
+**Key dependencies:** `next`, `react`, `react-dom`, `tailwindcss`, `@assistant-ui/react`, `ai`, `zustand`
 
 ---
 
-### `@heydata/semantic` — Pure TypeScript + Zod + YAML
+### `@heydata/semantic` — Markdown Document Store
 
 **Why this approach:**
-- Metric definitions are human-authored data files, not code — YAML is readable by analytics engineers and business users
-- Zod provides runtime validation so invalid definitions are caught at load time, not at query time
-- No framework needed; this is a pure data parsing and lookup library
+- The semantic layer is a human-readable Markdown document auto-generated from schema introspection and freely editable by users
+- Stored as `semantic_md TEXT` in the Supabase `semantic_layers` table
+- Injected as a persistent instruction set into every AI agent request
+- No structured parsing needed — the LLM reads the Markdown directly
 
 **Stack:**
 - TypeScript (pure library, no runtime framework)
-- Zod — schema definition and runtime validation for metric/dimension definitions
-- `js-yaml` — parse YAML definition files into TypeScript objects
+- Zod — schema validation for registry types
+- `js-yaml` — legacy YAML file loading (dev-mode only, deprecated)
 
-**Key dependencies:** `zod`, `js-yaml`
+**Key dependencies:** `zod`, `js-yaml` (legacy)
 
 ---
 
@@ -78,7 +82,7 @@ Single reference for every concrete technology choice across the monorepo. Locke
 - `@anthropic-ai/sdk` — direct Claude API access with streaming support
 - Zod — validate structured outputs from each agent (LLM outputs are untrusted text; Zod parses them into typed objects)
 
-**Model strategy (open decision):** Start with `claude-sonnet-4-6` for all agents. Tune per-agent model selection based on observed cost/quality tradeoffs after initial testing.
+**Model strategy (resolved):** Tiered approach — `claude-haiku-4-5-20251001` for lightweight structured agents (intent resolver, SQL validator, data validator, viz planner, command generator) and the same model for complex reasoning agents (SQL generator, data analyzer, narrative, semantic generator). Per-agent model selection is configurable via `OrchestratorConfig.model` and `OrchestratorConfig.fastModel`.
 
 **Key dependencies:** `@anthropic-ai/sdk`, `zod`
 
@@ -107,8 +111,8 @@ Single reference for every concrete technology choice across the monorepo. Locke
 - Declarative API aligns with the abstract viz spec approach: spec → component props
 - Good defaults, accessible, actively maintained
 
-**Supported chart types at v1:**
-Line, Bar, Area, Scatter, composed (dual-axis), KPI card (custom), data table (custom with TanStack Table)
+**Supported chart types (16):**
+Line, Bar, Area, Scatter, Composed (dual-axis), Pie, Donut, Funnel, Radar, Treemap, Waterfall, Histogram, Gauge, Heatmap, KPI card (custom), Data table (TanStack Table)
 
 **Additional dependency:** `@tanstack/react-table` for the data table view
 
@@ -148,7 +152,5 @@ Line, Bar, Area, Scatter, composed (dual-axis), KPI card (custom), data table (c
 
 The following affect tech stack as they get resolved (see `docs/open-questions.md`):
 
-- **Multi-tenant:** If needed, adds per-tenant connection pooling and semantic layer namespacing to `bridge` and `semantic`
 - **Async/scheduled queries:** If needed, adds a job queue (e.g., BullMQ + Redis) to `bridge`
 - **Multi-warehouse:** If needed, adds dialect adapters per warehouse to `bridge`
-- **Per-agent model selection:** Resolved through experimentation after v1 baseline is established

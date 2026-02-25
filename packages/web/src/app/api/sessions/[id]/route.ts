@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { apiError } from "@/lib/api-error";
+
+const PatchSessionSchema = z.object({
+  title: z.string().min(1).max(200),
+});
 
 /**
  * GET /api/sessions/:id — Get a session with its messages
@@ -70,14 +76,14 @@ export async function PATCH(
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
-  const updates: Record<string, unknown> = {};
-  if (typeof body.title === "string" && body.title.trim()) {
-    updates.title = body.title.trim();
+  const parsed = PatchSessionSchema.safeParse(body);
+  if (!parsed.success) {
+    return apiError(400, "Invalid request body", {
+      details: parsed.error.flatten().fieldErrors,
+    });
   }
 
-  if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: "No valid updates" }, { status: 400 });
-  }
+  const updates = { title: parsed.data.title.trim() };
 
   const { data, error } = await supabase
     .from("chat_sessions")

@@ -33,21 +33,24 @@ For general conversation only (greetings like "hi", "help", "what can you do"), 
 
 After calling query_data, do NOT add any text response. The tool result already contains the complete narrative, visualization, and analysis. Respond with the tool call only — no follow-up text.`;
 
+const ChatRequestSchema = z.object({
+  messages: z.array(z.unknown()).default([]),
+  sessionId: z.string().uuid().optional(),
+  connectionId: z.string().uuid().optional(),
+});
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const {
-      messages,
-      sessionId,
-      connectionId,
-    }: {
-      messages?: unknown[];
-      sessionId?: string;
-      connectionId?: string;
-    } = body;
+    const parsed = ChatRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ error: { message: "Invalid request body", details: parsed.error.flatten().fieldErrors } }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
 
-    const effectiveMessages = Array.isArray(messages) ? messages : [];
-    console.log("[chat] Received sessionId:", sessionId, "connectionId:", connectionId);
+    const { messages: effectiveMessages, sessionId, connectionId } = parsed.data;
 
     const queryDataTool = tool({
       description:
@@ -56,7 +59,7 @@ export async function POST(req: Request) {
         question: z.string().describe("The user's natural language question about the data"),
       }),
       execute: async ({ question }) => {
-        console.log("[chat] Executing query_data tool with:", question);
+        // Execute query via orchestrator pipeline
         if (!connectionId) {
           const noConnectionResponse: OrchestratorResponse = {
             requestId: `req_${Date.now()}_no_conn`,
@@ -93,7 +96,7 @@ export async function POST(req: Request) {
             sessionId: sessionId ?? undefined,
           },
         );
-        console.log("[chat] Query response received, requestId:", response.requestId);
+        // Return orchestrator response to be rendered in chat
         return response;
       },
     });
@@ -220,9 +223,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("[chat] Error:", error);
-    return new Response(JSON.stringify({ error: String(error) }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: { message: "Internal server error" } }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
   }
 }

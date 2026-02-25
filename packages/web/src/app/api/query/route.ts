@@ -1,32 +1,29 @@
 export const maxDuration = 60;
 
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { processQueryForConnection } from "@/lib/process-query-for-connection";
-import { HeyDataError } from "@heydata/shared";
+import { apiError, handleApiError } from "@/lib/api-error";
+
+const QuerySchema = z.object({
+  question: z.string().min(1, "Question is required"),
+  connectionId: z.string().uuid("connectionId must be a valid UUID"),
+  sessionId: z.string().uuid().optional(),
+});
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { question, sessionId, connectionId } = body as {
-      question?: string;
-      sessionId?: string;
-      connectionId?: string;
-    };
+    const parsed = QuerySchema.safeParse(body);
 
-    if (!question) {
-      return NextResponse.json(
-        { error: "Question is required" },
-        { status: 400 },
-      );
+    if (!parsed.success) {
+      return apiError(400, "Invalid request body", {
+        details: parsed.error.flatten().fieldErrors,
+      });
     }
 
-    if (!connectionId) {
-      return NextResponse.json(
-        { error: "connectionId is required. Select a connection to query your data." },
-        { status: 400 },
-      );
-    }
+    const { question, connectionId, sessionId } = parsed.data;
 
     const supabase = await createClient();
     const response = await processQueryForConnection(
@@ -36,22 +33,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Query error:", error);
-
-    if (error instanceof HeyDataError) {
-      return NextResponse.json(
-        {
-          error: error.message,
-          code: error.code,
-          agent: error.agent,
-        },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

@@ -22,6 +22,7 @@ import {
   validateSql,
 } from "./agents/index.js";
 import { QueryCache } from "./cache.js";
+import { createLogger, type Logger, type LogLevel } from "./logger.js";
 import type { AgentContext } from "./types.js";
 
 /**
@@ -44,6 +45,10 @@ export interface OrchestratorConfig {
   enableCache?: boolean;
   /** Cache TTL in milliseconds */
   cacheTtlMs?: number;
+  /** Logger instance (defaults to info-level console logger) */
+  logger?: Logger;
+  /** Log level (ignored if logger is provided) */
+  logLevel?: LogLevel;
 }
 
 /**
@@ -65,7 +70,7 @@ export interface OrchestratorInput {
 /**
  * Default configuration values
  */
-const DEFAULT_CONFIG: Required<Omit<OrchestratorConfig, "apiKey">> = {
+const DEFAULT_CONFIG: Required<Omit<OrchestratorConfig, "apiKey" | "logger" | "logLevel">> = {
   model: "claude-haiku-4-5-20251001",
   fastModel: "claude-haiku-4-5-20251001",
   dialect: "postgresql",
@@ -80,8 +85,9 @@ const DEFAULT_CONFIG: Required<Omit<OrchestratorConfig, "apiKey">> = {
  */
 export class Orchestrator {
   private client: Anthropic;
-  private config: Required<OrchestratorConfig>;
+  private config: Required<Omit<OrchestratorConfig, "logger" | "logLevel">>;
   private cache: QueryCache | null;
+  private log: Logger;
 
   constructor(config: OrchestratorConfig) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -89,6 +95,7 @@ export class Orchestrator {
     this.cache = this.config.enableCache
       ? new QueryCache({ ttlMs: this.config.cacheTtlMs })
       : null;
+    this.log = config.logger ?? createLogger({ level: config.logLevel ?? "info" });
   }
 
   /**
@@ -144,10 +151,8 @@ export class Orchestrator {
     const agentTraces: AgentTrace[] = [];
     const context = this.createContext(requestId, input.signal);
 
-    console.log("\n" + "=".repeat(80));
-    console.log(`[Orchestrator] Starting request: ${requestId}`);
-    console.log(`[Orchestrator] Question: "${input.question}"`);
-    console.log("=".repeat(80));
+    this.log.info(`[Orchestrator] Starting request: ${requestId}`);
+    this.log.debug(`[Orchestrator] Question: "${input.question}"`);
 
     // Check cache first
     if (this.cache) {
@@ -157,16 +162,15 @@ export class Orchestrator {
         dialect: this.config.dialect,
       });
       if (cached) {
-        console.log("[Orchestrator] Cache HIT - returning cached response");
+        this.log.info("[Orchestrator] Cache HIT - returning cached response");
         return cached;
       }
-      console.log("[Orchestrator] Cache MISS - processing query");
+      this.log.debug("[Orchestrator] Cache MISS - processing query");
     }
 
     try {
       // Step 1: Resolve intent
-      console.log("\n" + "-".repeat(60));
-      console.log("[Step 1] INTENT RESOLVER - Starting...");
+      this.log.info("[Step 1] Intent Resolver - starting");
       const intentResult = await resolveIntent({
         context,
         question: input.question,
@@ -174,22 +178,22 @@ export class Orchestrator {
         semanticMetadata: input.semanticMetadata,
       });
       agentTraces.push(intentResult.trace);
-      console.log("[Step 1] INTENT RESOLVER - Complete");
-      console.log("[Step 1] Query Type:", intentResult.data.queryType);
-      console.log("[Step 1] Metrics:", intentResult.data.metrics);
-      if (intentResult.data.adHocMetrics?.length) {
-        console.log("[Step 1] Ad-Hoc Metrics:", intentResult.data.adHocMetrics.map(m => `${m.name}: ${m.formula}`));
-      }
-      console.log("[Step 1] Dimensions:", intentResult.data.dimensions);
-      console.log("[Step 1] Filters:", JSON.stringify(intentResult.data.filters));
-      console.log("[Step 1] Time Range:", JSON.stringify(intentResult.data.timeRange));
-      console.log("[Step 1] Confidence:", intentResult.data.confidence);
-      if (intentResult.data.clarificationNeeded) {
-        console.log("[Step 1] Clarification Needed:", intentResult.data.clarificationQuestion);
-      }
+      this.log.info("[Step 1] Intent Resolver - complete", {
+        queryType: intentResult.data.queryType,
+        confidence: intentResult.data.confidence,
+      });
+      this.log.debug("[Step 1] Intent details", {
+        metrics: intentResult.data.metrics,
+        dimensions: intentResult.data.dimensions,
+        filters: intentResult.data.filters,
+        timeRange: intentResult.data.timeRange,
+      });
 
       // Check if clarification is needed
       if (intentResult.data.clarificationNeeded) {
+        this.log.info("[Step 1] Clarification needed", {
+          question: intentResult.data.clarificationQuestion,
+        });
         const trace = this.buildTrace(requestId, startedAt, agentTraces);
         return {
           requestId,
@@ -200,8 +204,7 @@ export class Orchestrator {
       }
 
       // Step 2 & 3: Generate and validate SQL with feedback loop
-      console.log("\n" + "-".repeat(60));
-      console.log("[Step 2-3] SQL GENERATION & VALIDATION - Starting...");
+      this.log.info("[Step 2-3] SQL Generation & Validation - starting");
       const { sqlResult, validationResult } = await this.generateAndValidateSql(
         context,
         intentResult.data,
@@ -209,32 +212,27 @@ export class Orchestrator {
         agentTraces,
       );
       agentTraces.push(validationResult.trace);
-      console.log("[Step 2-3] SQL GENERATION & VALIDATION - Complete");
-      console.log("[Step 2-3] Generated SQL:\n", sqlResult.data.sql);
-      console.log("[Step 2-3] Tables Touched:", sqlResult.data.tablesTouched);
-      console.log("[Step 2-3] Complexity:", sqlResult.data.estimatedComplexity);
-      console.log("[Step 2-3] Validation Valid:", validationResult.data.valid);
-      if (validationResult.data.issues.length > 0) {
-        console.log("[Step 2-3] Validation Issues:", JSON.stringify(validationResult.data.issues, null, 2));
-      }
+      this.log.info("[Step 2-3] SQL Generation & Validation - complete", {
+        tablesTouched: sqlResult.data.tablesTouched,
+        complexity: sqlResult.data.estimatedComplexity,
+        valid: validationResult.data.valid,
+      });
+      this.log.debug("[Step 2-3] Generated SQL", { sql: sqlResult.data.sql });
 
       // Step 4: Execute query
-      console.log("\n" + "-".repeat(60));
-      console.log("[Step 4] QUERY EXECUTION - Starting...");
+      this.log.info("[Step 4] Query Execution - starting");
       let resultSet: ResultSet;
       try {
         resultSet = await input.executeQuery(sqlResult.data.sql);
-        console.log("[Step 4] QUERY EXECUTION - Complete");
-        console.log("[Step 4] Row Count:", resultSet.rowCount);
-        console.log("[Step 4] Columns:", resultSet.columns.map(c => `${c.name}(${c.type})`).join(", "));
-        console.log("[Step 4] Truncated:", resultSet.truncated);
-        if (resultSet.rowCount > 0 && resultSet.rowCount <= 5) {
-          console.log("[Step 4] Sample Data:", JSON.stringify(resultSet.rows, null, 2));
-        } else if (resultSet.rowCount > 5) {
-          console.log("[Step 4] Sample Data (first 3 rows):", JSON.stringify(resultSet.rows.slice(0, 3), null, 2));
-        }
+        this.log.info("[Step 4] Query Execution - complete", {
+          rowCount: resultSet.rowCount,
+          columns: resultSet.columns.map(c => `${c.name}(${c.type})`).join(", "),
+          truncated: resultSet.truncated,
+        });
       } catch (error) {
-        console.error("[Step 4] QUERY EXECUTION - FAILED:", error);
+        this.log.error("[Step 4] Query Execution - FAILED", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         throw new HeyDataError(
           "QUERY_EXECUTION_FAILED",
           `Query execution failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -243,24 +241,24 @@ export class Orchestrator {
       }
 
       // Step 5: Validate data
-      console.log("\n" + "-".repeat(60));
-      console.log("[Step 5] DATA VALIDATION - Starting...");
+      this.log.info("[Step 5] Data Validation - starting");
       const dataValidationResult = await validateData({
         context,
         resultSet,
         intent: intentResult.data,
       });
       agentTraces.push(dataValidationResult.trace);
-      console.log("[Step 5] DATA VALIDATION - Complete");
-      console.log("[Step 5] Quality Flags:", dataValidationResult.data.qualityFlags.length);
-      if (dataValidationResult.data.qualityFlags.length > 0) {
-        console.log("[Step 5] Flags:", JSON.stringify(dataValidationResult.data.qualityFlags, null, 2));
-      }
-      console.log("[Step 5] Column Stats:", dataValidationResult.data.columnStats.map(s => `${s.column}: nulls=${s.nullCount}, distinct=${s.distinctCount}`).join("; "));
+      this.log.info("[Step 5] Data Validation - complete", {
+        qualityFlags: dataValidationResult.data.qualityFlags.length,
+      });
+      this.log.debug("[Step 5] Column stats", {
+        stats: dataValidationResult.data.columnStats.map(s =>
+          `${s.column}: nulls=${s.nullCount}, distinct=${s.distinctCount}`
+        ).join("; "),
+      });
 
       // Steps 6+7: Analyze data and plan visualization (parallel — no dependency between them)
-      console.log("\n" + "-".repeat(60));
-      console.log("[Step 6+7 parallel] DATA ANALYSIS + VISUALIZATION PLANNING - Starting...");
+      this.log.info("[Step 6+7] Data Analysis + Visualization Planning - starting (parallel)");
       const [analysisSettled, vizSettled] = await Promise.allSettled([
         analyzeData({
           context,
@@ -281,7 +279,9 @@ export class Orchestrator {
         analysisSettled.status === "fulfilled"
           ? analysisSettled.value
           : (() => {
-            console.error("[Step 6] DATA ANALYSIS - FAILED:", analysisSettled.reason);
+            this.log.error("[Step 6] Data Analysis - FAILED", {
+              error: String(analysisSettled.reason),
+            });
             return {
               data: [] as InsightAnnotation[],
               trace: {
@@ -302,7 +302,9 @@ export class Orchestrator {
         vizSettled.status === "fulfilled"
           ? vizSettled.value
           : (() => {
-            console.error("[Step 7] VISUALIZATION PLANNING - FAILED:", vizSettled.reason);
+            this.log.error("[Step 7] Visualization Planning - FAILED", {
+              error: String(vizSettled.reason),
+            });
             return {
               data: { chartType: "table" as const, series: [] } satisfies VisualizationSpec,
               trace: {
@@ -320,18 +322,14 @@ export class Orchestrator {
           })();
 
       agentTraces.push(analysisResult.trace, vizResult.trace);
-      console.log("[Step 6+7 parallel] DATA ANALYSIS + VISUALIZATION PLANNING - Complete");
-      console.log("[Step 6] Insights Found:", analysisResult.data.length);
-      if (analysisResult.data.length > 0) {
-        console.log("[Step 6] Insights:", JSON.stringify(analysisResult.data.slice(0, 3), null, 2));
-      }
-      console.log("[Step 7] Chart Type:", vizResult.data.chartType);
-      console.log("[Step 7] Title:", vizResult.data.title);
-      console.log("[Step 7] Series Count:", vizResult.data.series?.length ?? 0);
+      this.log.info("[Step 6+7] Data Analysis + Visualization Planning - complete", {
+        insightsFound: analysisResult.data.length,
+        chartType: vizResult.data.chartType,
+        seriesCount: vizResult.data.series?.length ?? 0,
+      });
 
       // Step 8: Generate narrative
-      console.log("\n" + "-".repeat(60));
-      console.log("[Step 8] NARRATIVE GENERATION - Starting...");
+      this.log.info("[Step 8] Narrative Generation - starting");
       const narrativeResult = await generateNarrative({
         context,
         intent: intentResult.data,
@@ -341,9 +339,9 @@ export class Orchestrator {
         question: input.question,
       });
       agentTraces.push(narrativeResult.trace);
-      console.log("[Step 8] NARRATIVE GENERATION - Complete");
-      console.log("[Step 8] Narrative Length:", narrativeResult.data.length, "chars");
-      console.log("[Step 8] Narrative Preview:", narrativeResult.data.substring(0, 200) + "...");
+      this.log.info("[Step 8] Narrative Generation - complete", {
+        length: narrativeResult.data.length,
+      });
 
       // Build enriched result set
       const enrichedResults: EnrichedResultSet = {
@@ -364,10 +362,9 @@ export class Orchestrator {
         trace: this.buildTrace(requestId, startedAt, agentTraces),
       };
 
-      console.log("\n" + "=".repeat(80));
-      console.log("[Orchestrator] Request COMPLETE:", requestId);
-      console.log("[Orchestrator] Total Duration:", Date.now() - startedAt.getTime(), "ms");
-      console.log("=".repeat(80) + "\n");
+      this.log.info(`[Orchestrator] Request COMPLETE: ${requestId}`, {
+        durationMs: Date.now() - startedAt.getTime(),
+      });
 
       // Cache the response
       if (this.cache) {
@@ -385,19 +382,13 @@ export class Orchestrator {
     } catch (error) {
       const trace = this.buildTrace(requestId, startedAt, agentTraces);
 
-      console.error("\n" + "!".repeat(80));
-      console.error("[Orchestrator] ❌ PIPELINE FAILED");
-      console.error("[Orchestrator] Request ID:", requestId);
-      console.error("[Orchestrator] Error:", error instanceof Error ? error.message : String(error));
-      if (error instanceof HeyDataError) {
-        console.error("[Orchestrator] Error Code:", error.code);
-        console.error("[Orchestrator] Agent:", error.agent);
-        if (error.details) {
-          console.error("[Orchestrator] Details:", JSON.stringify(error.details, null, 2));
-        }
-      }
-      console.error("[Orchestrator] Completed Agents:", agentTraces.map(t => t.agent).join(" → "));
-      console.error("!".repeat(80) + "\n");
+      this.log.error("[Orchestrator] Pipeline FAILED", {
+        requestId,
+        error: error instanceof Error ? error.message : String(error),
+        code: error instanceof HeyDataError ? error.code : undefined,
+        agent: error instanceof HeyDataError ? error.agent : undefined,
+        completedAgents: agentTraces.map(t => t.agent).join(" -> "),
+      });
 
       if (error instanceof HeyDataError) {
         throw error;
@@ -425,15 +416,16 @@ export class Orchestrator {
     let validationErrors: string[] | undefined;
 
     for (let attempt = 0; attempt < this.config.maxSqlRetries; attempt++) {
-      console.log(`\n[Step 2-3] Attempt ${attempt + 1}/${this.config.maxSqlRetries}`);
+      this.log.info(`[Step 2-3] Attempt ${attempt + 1}/${this.config.maxSqlRetries}`);
 
-      // Generate SQL (with previous errors if this is a retry)
-      console.log("[Step 2] SQL GENERATOR - Starting...");
       if (previousSql && validationErrors) {
-        console.log("[Step 2] Retrying with feedback from previous errors:");
-        validationErrors.forEach((e, i) => console.log(`  ${i + 1}. ${e}`));
+        this.log.debug("[Step 2] Retrying with feedback from previous errors", {
+          errors: validationErrors,
+        });
       }
 
+      // Generate SQL (with previous errors if this is a retry)
+      this.log.debug("[Step 2] SQL Generator - starting");
       const sqlResult = await generateSql({
         context,
         intent,
@@ -443,24 +435,23 @@ export class Orchestrator {
       });
       sqlResult.trace.retryCount = attempt;
       agentTraces.push(sqlResult.trace);
-
-      console.log("[Step 2] SQL GENERATOR - Complete");
-      console.log("[Step 2] Generated SQL:\n", sqlResult.data.sql);
+      this.log.debug("[Step 2] SQL Generator - complete", { sql: sqlResult.data.sql });
 
       // Validate the generated SQL
-      console.log("[Step 3] SQL VALIDATOR - Starting...");
+      this.log.debug("[Step 3] SQL Validator - starting");
       const validationResult = await validateSql({
         context,
         generatedSql: sqlResult.data,
         intent,
         semanticMetadata,
       });
-      console.log("[Step 3] SQL VALIDATOR - Complete");
-      console.log("[Step 3] Valid:", validationResult.data.valid);
+      this.log.debug("[Step 3] SQL Validator - complete", {
+        valid: validationResult.data.valid,
+      });
 
       // If valid, return both results
       if (validationResult.data.valid) {
-        console.log("[Step 3] ✅ Validation PASSED");
+        this.log.info("[Step 3] Validation PASSED");
         return { sqlResult, validationResult };
       }
 
@@ -471,7 +462,7 @@ export class Orchestrator {
 
       // If no error-level issues, treat as valid (warnings/info only)
       if (errorIssues.length === 0) {
-        console.log("[Step 3] ✅ Validation PASSED (warnings only)");
+        this.log.info("[Step 3] Validation PASSED (warnings only)");
         return { sqlResult, validationResult };
       }
 
@@ -479,10 +470,12 @@ export class Orchestrator {
       previousSql = sqlResult.data.sql;
       validationErrors = errorIssues.map((i) => i.message);
 
-      console.log("[Step 3] ❌ Validation FAILED with", errorIssues.length, "errors:");
-      errorIssues.forEach((issue, i) => {
-        console.log(`  ${i + 1}. [${issue.type}] ${issue.message}`);
-        if (issue.suggestion) console.log(`     Suggestion: ${issue.suggestion}`);
+      this.log.warn(`[Step 3] Validation FAILED with ${errorIssues.length} errors`, {
+        issues: errorIssues.map(i => ({
+          type: i.type,
+          message: i.message,
+          suggestion: i.suggestion,
+        })),
       });
 
       // Add validation trace for this failed attempt
@@ -490,7 +483,7 @@ export class Orchestrator {
     }
 
     // All retries exhausted
-    console.error("[Step 2-3] ❌ All retries exhausted. Final errors:", validationErrors);
+    this.log.error("[Step 2-3] All retries exhausted", { lastErrors: validationErrors });
     throw new HeyDataError(
       "SQL_VALIDATION_FAILED",
       `SQL validation failed after ${this.config.maxSqlRetries} attempts. Last errors: ${validationErrors?.join("; ")}`,

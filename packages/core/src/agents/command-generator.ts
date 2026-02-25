@@ -114,7 +114,7 @@ export async function generateCommands(
   const { context, semanticMarkdown } = input;
 
   try {
-    console.log(`[command-generator] Starting command generation (model: ${context.fastModel})`);
+    // Logging handled at orchestrator level
 
     const response = await context.client.messages.create(
       {
@@ -134,9 +134,7 @@ export async function generateCommands(
     );
 
     const { inputTokens, outputTokens } = extractTokenUsage(response);
-    console.log(
-      `[command-generator] Complete — input: ${inputTokens} tokens, output: ${outputTokens} tokens`,
-    );
+    // Token usage tracked via trace
 
     // With tool_choice forced to "save_commands", the SDK guarantees a tool_use block
     // with input already parsed as JSON — no text extraction or JSON.parse needed.
@@ -168,7 +166,7 @@ export async function generateCommands(
       return true;
     });
 
-    console.log(`[command-generator] Generated ${unique.length} valid commands`);
+    // Count tracked in returned data
 
     return {
       data: { commands: unique },

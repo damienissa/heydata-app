@@ -211,9 +211,7 @@ export async function generateSemantic(
 
   try {
     const userMessage = buildUserMessage(introspectedSchema);
-    console.log(
-      `[semantic-generator] Starting generation for ${introspectedSchema.tables.length} tables (model: ${context.model})`,
-    );
+    // Logging handled at orchestrator level
 
     const response = await context.client.messages.create(
       {
@@ -226,9 +224,7 @@ export async function generateSemantic(
     );
 
     const { inputTokens, outputTokens } = extractTokenUsage(response);
-    console.log(
-      `[semantic-generator] Complete — input: ${inputTokens} tokens, output: ${outputTokens} tokens`,
-    );
+    // Token usage tracked via trace
 
     const textBlock = response.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text") {

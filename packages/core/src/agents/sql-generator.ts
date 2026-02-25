@@ -154,7 +154,7 @@ export async function generateSql(
     const usage = response.usage as unknown as Record<string, number>;
     const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
     if (cacheReadTokens > 0) {
-      console.log(`[SQL Generator] Cache hit: ${cacheReadTokens} tokens read from cache`);
+      // Cache usage tracked via trace
     }
 
     const textContent = response.content.find((c) => c.type === "text");

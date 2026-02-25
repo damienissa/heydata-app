@@ -46,6 +46,15 @@ export {
   extractTokenUsage,
 } from "./types.js";
 
+// Logger
+export {
+  createLogger,
+  silentLogger,
+  type Logger,
+  type LogLevel,
+  type LoggerOptions,
+} from "./logger.js";
+
 // Cache
 export { QueryCache, createQueryCache } from "./cache.js";
 

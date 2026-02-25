@@ -2,6 +2,7 @@
 
 import { RendererRouter } from "@heydata/renderer";
 import type { ColumnMetadata, Row, VisualizationSpec } from "@heydata/shared";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export interface ResultsCanvasProps {
   spec: VisualizationSpec | null;
@@ -54,13 +55,21 @@ export function ResultsCanvas({
   }
 
   return (
-    <div className={`p-4 ${className}`}>
-      <RendererRouter
-        spec={spec}
-        data={data}
-        columns={columns}
-        height={400}
-      />
-    </div>
+    <ErrorBoundary
+      fallback={
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Chart could not be rendered.
+        </div>
+      }
+    >
+      <div className={`p-4 ${className}`}>
+        <RendererRouter
+          spec={spec}
+          data={data}
+          columns={columns}
+          height={400}
+        />
+      </div>
+    </ErrorBoundary>
   );
 }

@@ -5,6 +5,7 @@ import type { OrchestratorResponse } from "@heydata/shared";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export interface QueryResultProps {
   response: OrchestratorResponse;
@@ -42,14 +43,22 @@ export function QueryResult({ response, className = "" }: QueryResultProps) {
 
       {/* Visualization */}
       {visualization && results && results.rows.length > 0 && (
-        <div className="rounded-lg border bg-card p-4">
-          <RendererRouter
-            spec={visualization}
-            data={results.rows}
-            columns={results.columns}
-            height={350}
-          />
-        </div>
+        <ErrorBoundary
+          fallback={
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              Chart could not be rendered. The data is still available in the narrative above.
+            </div>
+          }
+        >
+          <div className="rounded-lg border bg-card p-4">
+            <RendererRouter
+              spec={visualization}
+              data={results.rows}
+              columns={results.columns}
+              height={350}
+            />
+          </div>
+        </ErrorBoundary>
       )}
 
       {/* Data Quality Flags */}

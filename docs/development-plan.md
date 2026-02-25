@@ -413,3 +413,47 @@ Auto-generate `/commandName`-style chat shortcuts from the semantic layer, persi
 ### 21h — Setup Page Progress
 
 - [x] `packages/web/src/app/setup/page.tsx` — rewrite `handleGenerate` to read SSE stream from `semantic/generate` endpoint; show 5-step progress indicator (connecting → introspecting → generating → saving → commands) replacing the spinner button during generation
+
+---
+
+## Phase 22 — Codebase Audit & Documentation Refresh
+
+### 22a — Audit Report
+
+- [x] `docs/audit-report.md` — Comprehensive audit findings (code quality, security, testing, docs) with severity levels and exact file:line references
+
+### 22b — Documentation Updates
+
+- [x] `GETTING_STARTED.md` — Rewrite for Markdown semantic layer / onboarding wizard flow
+- [x] `README.md` — Update package descriptions, env vars, remove YAML references
+- [x] `docs/tech-stack.md` — Add supabase package, update semantic description, tiered models, chart count
+- [x] `docs/architecture.md` — Update Layer 2/3 for Markdown semantic, add encryption, commands table
+- [x] `docs/agents.md` — Update semantic generator output, add command generator agent
+- [x] `docs/cross-cutting.md` — Add AES-256-GCM encryption documentation
+- [x] `docs/data-flow.md` — Update semantic loading description, add slash commands to setup flow
+- [x] `docs/open-questions.md` — Mark Q1-Q4 as resolved
+
+### 22c — Structured Logging
+
+- [x] `packages/core/src/logger.ts` — Logger interface and createLogger factory
+- [x] Replace 89 console.log calls in core with structured logger
+- [x] Remove PII-leaking debug output (row data, SQL in info level)
+
+### 22d — API Validation & Error Standardization
+
+- [x] `packages/web/src/lib/api-error.ts` — Standardized error response helper
+- [x] `packages/web/src/lib/env.ts` — Environment variable validation with Zod
+- [x] Add Zod schemas to query, chat, and session PATCH routes
+
+### 22e — Frontend Error Boundaries
+
+- [x] `packages/web/src/components/error-boundary.tsx` — Reusable error boundary
+- [x] `packages/web/src/app/error.tsx` + `packages/web/src/app/global-error.tsx` — Next.js error pages
+- [x] Wrap RendererRouter in QueryResult and ResultsCanvas with error boundaries
+
+### 22f — Dependency Alignment & Dev Plan Update
+
+- [x] Align vitest to `^3.0.5` across all packages
+- [x] Align tsup to `^8.3.6` across all packages
+- [x] Add `lint` script to `@heydata/web` package.json
+- [x] Update `docs/development-plan.md` with Phase 22 items

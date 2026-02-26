@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { ChatProvider } from "@/contexts/chat-context";
 import { useConnections } from "@/hooks/use-connections";
 import { useSessions } from "@/hooks/use-sessions";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 /** Extract session ID from /chat/[id] pathname, or undefined for /chat */
@@ -32,6 +32,8 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
    * conversation is never disrupted).
    */
   const [mountId, setMountId] = useState<string>(idFromUrl ?? "new");
+  // Track when user explicitly clicked "New Chat" so auto-select doesn't override it
+  const explicitNewChatRef = useRef(!idFromUrl);
 
   const {
     connections,
@@ -71,9 +73,11 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
     }
   }, [sessionId, sessions, connectionId]);
 
-  // Auto-select most recent session when landing on /chat with no ID in the URL
+  // Auto-select most recent session when landing on /chat with no ID in the URL.
+  // Skip when the user explicitly started a new chat (explicitNewChatRef).
   useEffect(() => {
     if (sessionsLoading || sessionId || sessions.length === 0) return;
+    if (explicitNewChatRef.current) return;
     const id = sessions[0]!.id;
     setSessionId(id);
     setMountId(id);
@@ -81,6 +85,7 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
   }, [sessions, sessionsLoading, sessionId]);
 
   const handleNewChat = () => {
+    explicitNewChatRef.current = true;
     setSessionId(undefined);
     setMountId("new");
     router.replace("/chat");
@@ -99,6 +104,7 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
         connectionId: connectionId ?? null,
       });
       if (session) {
+        explicitNewChatRef.current = false;
         setSessionId(session.id);
         // intentionally NOT updating mountId — keeps the conversation alive
         // Update URL silently without triggering navigation
@@ -113,6 +119,7 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
   );
 
   const handleSelectSession = (id: string) => {
+    explicitNewChatRef.current = false;
     setSessionId(id);
     setMountId(id); // explicit switch → remount to load history
     const session = sessions.find((s) => s.id === id);

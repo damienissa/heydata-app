@@ -47,6 +47,7 @@ export default function Home() {
     isLoading: sessionsLoading,
     createSession,
     deleteSession,
+    refetch: refetchSessions,
   } = useSessions(connectionId ?? undefined);
 
   // Auto-select most recent session when sessions load (also restores on page reload)
@@ -82,10 +83,12 @@ export default function Home() {
     if (session) {
       setSessionId(session.id);
       // intentionally NOT updating mountId — keeps the conversation alive
+      // Refetch after a delay to pick up auto-generated title from the server
+      setTimeout(() => refetchSessions(), 4000);
       return session.id;
     }
     return undefined;
-  }, [createSession, connectionId]);
+  }, [createSession, connectionId, refetchSessions]);
 
   const handleSelectSession = (id: string) => {
     setSessionId(id);

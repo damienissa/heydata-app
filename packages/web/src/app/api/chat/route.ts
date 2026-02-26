@@ -4,7 +4,7 @@ import { processQueryForConnection } from "@/lib/process-query-for-connection";
 import { createClient } from "@/lib/supabase/server";
 import { anthropic } from "@ai-sdk/anthropic";
 import type { OrchestratorResponse } from "@heydata/shared";
-import { convertToModelMessages, stepCountIs, streamText, tool, type UIMessage } from "ai";
+import { convertToModelMessages, generateText, stepCountIs, streamText, tool, type UIMessage } from "ai";
 import { z } from "zod";
 
 const SYSTEM_PROMPT = `You are HeyData, an AI assistant that helps users analyze their data.
@@ -150,6 +150,36 @@ export async function POST(req: Request) {
             role: "user",
             content: userContent,
           } as never);
+
+          // Fire-and-forget: auto-generate session title on first message
+          void (async () => {
+            try {
+              const { data: sess } = await supabase
+                .from("chat_sessions")
+                .select("title")
+                .eq("id", sessionId)
+                .single();
+              const sessTitle = (sess as { title?: string } | null)?.title;
+
+              if (sessTitle === "New Chat") {
+                const { text } = await generateText({
+                  model: anthropic("claude-haiku-4-5-20251001"),
+                  system:
+                    "Generate a very short title (3-6 words) summarizing the user's message. Return ONLY the title text, no quotes, no punctuation at the end.",
+                  prompt: userContent.slice(0, 200),
+                });
+                const title = text.trim().replace(/[."]+$/, "").slice(0, 100);
+                if (title) {
+                  await supabase
+                    .from("chat_sessions")
+                    .update({ title } as never)
+                    .eq("id", sessionId);
+                }
+              }
+            } catch {
+              // Non-critical — title stays as "New Chat"
+            }
+          })();
         }
       }
     }

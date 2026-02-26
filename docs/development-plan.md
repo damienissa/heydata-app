@@ -457,3 +457,17 @@ Auto-generate `/commandName`-style chat shortcuts from the semantic layer, persi
 - [x] Align tsup to `^8.3.6` across all packages
 - [x] Add `lint` script to `@heydata/web` package.json
 - [x] Update `docs/development-plan.md` with Phase 22 items
+
+---
+
+## Phase 23 — Chat Session UX Improvements
+
+### 23a — Fix Sidebar Ordering
+
+- [x] `supabase/migrations/20260226100000_touch_session_on_message.sql` — DB trigger on `chat_messages` INSERT that updates parent `chat_sessions.updated_at`, so sidebar ordering reflects last activity
+
+### 23b — Auto-Generate Session Titles
+
+- [x] `packages/web/src/app/api/chat/route.ts` — Fire-and-forget Haiku call to generate a 3–6 word title from the first user message; updates session title in DB when current title is "New Chat"
+- [x] `packages/web/src/hooks/use-sessions.ts` — Stabilize `refetch` with `useCallback`
+- [x] `packages/web/src/app/page.tsx` — Delayed refetch (4s) after auto-creating a session to pick up the generated title in the sidebar

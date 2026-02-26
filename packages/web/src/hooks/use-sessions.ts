@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface Session {
   id: string;
@@ -60,16 +60,15 @@ export function useSessions(connectionId?: string) {
     setSessions((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const refetch = () => {
+  const refetch = useCallback(() => {
     const url = connectionId
       ? `/api/sessions?connectionId=${encodeURIComponent(connectionId)}`
       : "/api/sessions";
-    setIsLoading(true);
     fetch(url)
       .then((res) => res.json())
       .then((data: Session[]) => setSessions(Array.isArray(data) ? data : []))
-      .finally(() => setIsLoading(false));
-  };
+      .catch(() => {});
+  }, [connectionId]);
 
   return {
     sessions,

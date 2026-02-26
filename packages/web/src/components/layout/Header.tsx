@@ -17,7 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BookTextIcon, PlusIcon, Settings2Icon, Trash2Icon } from "lucide-react";
+import { BookTextIcon, LogOutIcon, PlusIcon, Settings2Icon, Trash2Icon } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   connections?: Connection[];
@@ -32,8 +34,16 @@ export function Header({
   onSelectConnection,
   onDeleteConnection,
 }: HeaderProps) {
+  const router = useRouter();
   const [manageOpen, setManageOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
 
   const handleDelete = async (id: string) => {
     if (!onDeleteConnection) return;
@@ -88,6 +98,15 @@ export function Header({
           aria-label="Manage connections"
         >
           <Settings2Icon className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-foreground"
+          onClick={handleSignOut}
+          aria-label="Sign out"
+        >
+          <LogOutIcon className="h-4 w-4" />
         </Button>
       </div>
 

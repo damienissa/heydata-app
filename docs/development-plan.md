@@ -507,3 +507,4 @@ Give each conversation its own URL (`/chat/[id]`). A blank new chat starts at `/
 
 - [x] `packages/web/src/lib/supabase/middleware.ts` — Allow `/` as public route for unauthenticated users
 - [x] `packages/web/src/app/page.tsx` — Hero section for unauthenticated users (product name + tagline + CTA to login); server-side auth check redirects authenticated users to `/chat`
+- [x] `packages/web/src/components/layout/Header.tsx` — Sign out button (calls `supabase.auth.signOut()`, redirects to `/`)

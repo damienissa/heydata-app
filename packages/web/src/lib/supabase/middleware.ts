@@ -47,8 +47,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && isAuthRoute) {
+  // Redirect authenticated users away from auth pages and landing
+  if (user && (isAuthRoute || isPublicRoute)) {
     const url = request.nextUrl.clone();
     url.pathname = "/chat";
     return NextResponse.redirect(url);

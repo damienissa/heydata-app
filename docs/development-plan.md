@@ -500,3 +500,10 @@ Give each conversation its own URL (`/chat/[id]`). A blank new chat starts at `/
 - [ ] `packages/web/src/app/page.tsx` — Replace with server redirect to `/chat`
 - [ ] Update `/` → `/chat` references in: middleware, login, setup, semantic settings pages
 - [ ] Lazy session creation: "New Chat" navigates to `/chat` without creating a DB session; session is auto-created on first message
+
+---
+
+## Phase 25 — Landing Page
+
+- [x] `packages/web/src/lib/supabase/middleware.ts` — Allow `/` as public route for unauthenticated users
+- [x] `packages/web/src/app/page.tsx` — Hero section for unauthenticated users (product name + tagline + CTA to login); server-side auth check redirects authenticated users to `/chat`

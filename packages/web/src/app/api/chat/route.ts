@@ -103,9 +103,9 @@ export async function POST(req: Request) {
 
     // Convert UI messages to model format (handles tool calls/results correctly).
     // Sanitize: ensure parts exist, Anthropic rejects empty text blocks, and
-    // assistant-ui tool parts (tool-{name}) are converted to AI SDK format
-    // (tool-invocation) so convertToModelMessages creates matching tool_use +
-    // tool_result blocks.
+    // tool parts use the AI SDK v6 format (type: "tool-{name}", state:
+    // "output-available", input/output fields) so convertToModelMessages
+    // creates matching tool_use + tool_result blocks.
     const sanitizedMessages = effectiveMessages.map((msg: unknown) => {
       const m = msg as { role: string; content?: string; parts?: Array<{ type: string; text?: string } & Record<string, unknown>> };
       let parts = m.parts && Array.isArray(m.parts) ? [...m.parts] : [];
@@ -116,16 +116,18 @@ export async function POST(req: Request) {
       return {
         ...m,
         parts: parts.map((p: { type: string; text?: string } & Record<string, unknown>) => {
-          // Convert assistant-ui tool parts to AI SDK tool-invocation format
-          if (p.type.startsWith("tool-") && p.type !== "tool-invocation") {
-            const toolName = p.type.replace(/^tool-/, "");
+          // Normalize tool parts to AI SDK v6 format (tool-{name} with
+          // state "output-available" and input/output fields).
+          if (p.type.startsWith("tool-")) {
+            const toolName = p.type === "tool-invocation"
+              ? ((p.toolName as string) || "query_data")
+              : p.type.replace(/^tool-/, "");
             return {
-              type: "tool-invocation" as const,
+              type: `tool-${toolName}` as const,
               toolCallId: (p.toolCallId ?? p.id ?? `tc_${Date.now()}`) as string,
-              toolName,
-              args: (p.input ?? p.args ?? {}) as Record<string, unknown>,
-              state: "result" as const,
-              result: p.output ?? p.result,
+              state: "output-available" as const,
+              input: (p.input ?? p.args ?? {}) as Record<string, unknown>,
+              output: p.output ?? p.result,
             };
           }
           // Fix empty text parts

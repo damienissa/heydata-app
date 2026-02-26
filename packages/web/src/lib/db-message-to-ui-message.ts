@@ -1,9 +1,11 @@
 import type { DbMessage } from "@/hooks/use-session-with-messages";
 
 /**
- * Converts a DB chat_message to AI SDK UIMessage format.
- * UIMessage has: id, role, parts: Array<{ type, text?, ... }>
- * Tool parts: { type: 'tool-query_data', toolCallId, state, input, output }
+ * Converts a DB chat_message to assistant-ui UIMessage format.
+ *
+ * Tool parts use the assistant-ui internal format (`type: "tool-{toolName}"`)
+ * which the runtime and rendering layer expect. Conversion to the AI SDK
+ * model format happens in the chat route's sanitization step.
  */
 export function dbMessageToUIMessage(msg: DbMessage): {
   id: string;

@@ -102,7 +102,10 @@ export async function POST(req: Request) {
     });
 
     // Convert UI messages to model format (handles tool calls/results correctly).
-    // Sanitize: ensure parts exist, and Anthropic rejects empty text blocks.
+    // Sanitize: ensure parts exist, Anthropic rejects empty text blocks, and
+    // assistant-ui tool parts (tool-{name}) are converted to AI SDK format
+    // (tool-invocation) so convertToModelMessages creates matching tool_use +
+    // tool_result blocks.
     const sanitizedMessages = effectiveMessages.map((msg: unknown) => {
       const m = msg as { role: string; content?: string; parts?: Array<{ type: string; text?: string } & Record<string, unknown>> };
       let parts = m.parts && Array.isArray(m.parts) ? [...m.parts] : [];
@@ -112,11 +115,25 @@ export async function POST(req: Request) {
       }
       return {
         ...m,
-        parts: parts.map((p: { type: string; text?: string } & Record<string, unknown>) =>
-          p.type === "text" && (p.text == null || p.text === "")
-            ? { ...p, text: " " }
-            : p
-        ),
+        parts: parts.map((p: { type: string; text?: string } & Record<string, unknown>) => {
+          // Convert assistant-ui tool parts to AI SDK tool-invocation format
+          if (p.type.startsWith("tool-") && p.type !== "tool-invocation") {
+            const toolName = p.type.replace(/^tool-/, "");
+            return {
+              type: "tool-invocation" as const,
+              toolCallId: (p.toolCallId ?? p.id ?? `tc_${Date.now()}`) as string,
+              toolName,
+              args: (p.input ?? p.args ?? {}) as Record<string, unknown>,
+              state: "result" as const,
+              result: p.output ?? p.result,
+            };
+          }
+          // Fix empty text parts
+          if (p.type === "text" && (p.text == null || p.text === "")) {
+            return { ...p, text: " " };
+          }
+          return p;
+        }),
       };
     });
 
@@ -150,6 +167,14 @@ export async function POST(req: Request) {
             role: "user",
             content: userContent,
           } as never);
+
+          // Touch session updated_at so sidebar ordering reflects last activity.
+          // Belt-and-suspenders: the DB trigger does this too, but this covers
+          // cases where the migration hasn't been applied yet.
+          await supabase
+            .from("chat_sessions")
+            .update({ updated_at: new Date().toISOString() } as never)
+            .eq("id", sessionId);
 
           // Fire-and-forget: auto-generate session title on first message
           void (async () => {
@@ -189,7 +214,13 @@ export async function POST(req: Request) {
       system: SYSTEM_PROMPT,
       messages: modelMessages,
       tools: { query_data: queryDataTool },
+      // 2 steps: step 0 may call query_data, step 1 processes the tool result.
+      // Disable tools after step 0 so the model can't call query_data twice.
       stopWhen: stepCountIs(2),
+      prepareStep: ({ stepNumber }) => {
+        if (stepNumber > 0) return { toolChoice: "none" as const };
+        return {};
+      },
     });
 
     return result.toUIMessageStreamResponse({

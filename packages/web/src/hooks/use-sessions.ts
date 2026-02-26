@@ -70,6 +70,17 @@ export function useSessions(connectionId?: string) {
       .catch(() => {});
   }, [connectionId]);
 
+  // Lightweight polling: keep sidebar ordering and titles in sync.
+  // Refetches every 10s (only when the tab is visible).
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        refetch();
+      }
+    }, 10_000);
+    return () => clearInterval(id);
+  }, [refetch]);
+
   return {
     sessions,
     isLoading,

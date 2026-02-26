@@ -471,3 +471,18 @@ Auto-generate `/commandName`-style chat shortcuts from the semantic layer, persi
 - [x] `packages/web/src/app/api/chat/route.ts` — Fire-and-forget Haiku call to generate a 3–6 word title from the first user message; updates session title in DB when current title is "New Chat"
 - [x] `packages/web/src/hooks/use-sessions.ts` — Stabilize `refetch` with `useCallback`
 - [x] `packages/web/src/app/page.tsx` — Delayed refetch (4s) after auto-creating a session to pick up the generated title in the sidebar
+
+### 23c — Fix Duplicate Message Sends
+
+- [x] `packages/web/src/app/api/chat/route.ts` — Change `stepCountIs(2)` → `stepCountIs(1)` to prevent the model from calling `query_data` twice across multi-step tool rounds
+- [x] `packages/web/src/app/assistant.tsx` — Memoize `AssistantChatTransport` with `useMemo` to prevent re-creation on every render; add ref-based guard in `prepareSendMessagesRequest` to prevent concurrent sends
+
+### 23d — Fix tool_use/tool_result on Page Reload
+
+- [x] `packages/web/src/app/api/chat/route.ts` — Convert assistant-ui `tool-{name}` parts to AI SDK `tool-invocation` format in the sanitization step, so `convertToModelMessages` produces matching `tool_use` + `tool_result` blocks after a page reload
+
+### 23e — Application-Level Sidebar Ordering
+
+- [x] `packages/web/src/app/api/chat/route.ts` — Explicitly touch `chat_sessions.updated_at` after persisting a user message (works with or without the DB trigger migration)
+- [x] `packages/web/src/hooks/use-sessions.ts` — Add 10-second polling interval (only when tab is visible) to keep sidebar ordering and titles in sync
+- [x] `packages/web/src/app/assistant.tsx` — Fix `h-dvh` → `h-full` to prevent composer from being clipped below viewport

@@ -486,3 +486,17 @@ Auto-generate `/commandName`-style chat shortcuts from the semantic layer, persi
 - [x] `packages/web/src/app/api/chat/route.ts` — Explicitly touch `chat_sessions.updated_at` after persisting a user message (works with or without the DB trigger migration)
 - [x] `packages/web/src/hooks/use-sessions.ts` — Add 10-second polling interval (only when tab is visible) to keep sidebar ordering and titles in sync
 - [x] `packages/web/src/app/assistant.tsx` — Fix `h-dvh` → `h-full` to prevent composer from being clipped below viewport
+
+---
+
+## Phase 24 — Chat URL Routing
+
+Give each conversation its own URL (`/chat/[id]`). A blank new chat starts at `/chat`, and the URL updates to `/chat/{id}` after the first message auto-creates a session.
+
+- [ ] `packages/web/src/app/chat/layout.tsx` — New client layout with Header, Sidebar, ChatProvider, and Assistant; reads session ID from URL via `usePathname()`; manages connections/sessions state; uses `window.history.replaceState()` for silent URL update on auto-create
+- [ ] `packages/web/src/app/chat/page.tsx` — Minimal page for `/chat` route (returns null)
+- [ ] `packages/web/src/app/chat/[id]/page.tsx` — Minimal page for `/chat/[id]` route (returns null)
+- [ ] `packages/web/src/app/chat/assistant.tsx` — Moved from `app/assistant.tsx` (unchanged content)
+- [ ] `packages/web/src/app/page.tsx` — Replace with server redirect to `/chat`
+- [ ] Update `/` → `/chat` references in: middleware, login, setup, semantic settings pages
+- [ ] Lazy session creation: "New Chat" navigates to `/chat` without creating a DB session; session is auto-created on first message

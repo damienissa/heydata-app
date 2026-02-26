@@ -176,7 +176,7 @@ export default function SetupPage() {
   };
 
   const handleDone = () => {
-    router.push("/");
+    router.push("/chat");
     router.refresh();
   };
 
@@ -192,7 +192,7 @@ export default function SetupPage() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-background p-8">
       <Link
-        href="/"
+        href="/chat"
         className="absolute top-4 left-4 text-sm text-muted-foreground hover:text-foreground"
       >
         ← Back to chat

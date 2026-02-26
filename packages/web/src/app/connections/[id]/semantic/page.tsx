@@ -379,7 +379,7 @@ export default function SemanticEditorPage() {
       {/* Top bar */}
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
         <div className="flex items-center gap-3">
-          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link href="/chat" className="text-sm text-muted-foreground hover:text-foreground">
             ← Back to chat
           </Link>
           <span className="text-muted-foreground">/</span>

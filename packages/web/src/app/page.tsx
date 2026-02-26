@@ -84,7 +84,7 @@ export default async function Home() {
                   &quot;What were our top 10 products by revenue last
                   quarter?&quot;
                 </p>
-                <div className="flex items-end gap-1.5">
+                <div className="flex items-end gap-1.5" style={{ height: "90px" }}>
                   {bars.map((h, i) => (
                     <div
                       key={i}
